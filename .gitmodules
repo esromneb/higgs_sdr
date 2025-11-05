@@ -4,12 +4,18 @@
 [submodule "libs/ip-verification"]
 	path = libs/ip-verification
 	url = git@github.com:siglabsoss/ip-verification.git
-[submodule "libs/s-modem"]
-	path = libs/s-modem
-	url = git@github.com:siglabsoss/s-modem.git
 [submodule "libs/higgs-dashboard"]
 	path = libs/higgs-dashboard
 	url = git@github.com:siglabsoss/higgs-dashboard.git
 [submodule "libs/riscv-baseband/VexRiscv"]
 	path = libs/riscv-baseband/VexRiscv
 	url = git@github.com:SpinalHDL/VexRiscv.git
+[submodule "libs/s-modem/soapy/src/3rd/rapidcheck"]
+	path = libs/s-modem/soapy/src/3rd/rapidcheck
+	url = git@github.com:esromneb/rapidcheck.git
+[submodule "libs/s-modem/soapy/src/3rd/schifra"]
+	path = libs/s-modem/soapy/src/3rd/schifra
+	url = git@github.com:ArashPartow/schifra.git
+[submodule "libs/s-modem/soapy/src/3rd/turbofec"]
+	path = libs/s-modem/soapy/src/3rd/turbofec
+	url = git@github.com:ttsou/turbofec.git
