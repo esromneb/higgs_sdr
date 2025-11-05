@@ -1,9 +1,6 @@
 [submodule "libs/datapath"]
 	path = libs/datapath
 	url = git@github.com:siglabsoss/datapath.git
-[submodule "libs/ip-verification"]
-	path = libs/ip-verification
-	url = git@github.com:siglabsoss/ip-verification.git
 [submodule "libs/higgs-dashboard"]
 	path = libs/higgs-dashboard
 	url = git@github.com:siglabsoss/higgs-dashboard.git
