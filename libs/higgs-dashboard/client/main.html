@@ -1,0 +1,239 @@
+<head>
+  <title>higgs-dashboard</title>
+</head>
+
+<body>
+  <h1>Dashboard of Higgs Estimates</h1>
+  {{> hello2}}
+  {{> keyer}}
+  {{> controlButtons}}
+  
+  {{> RadioEstimateTemplate}}
+  <br>
+  {{> smodemTemplate}}
+  <!-- {{> vectorTemplate}} -->
+  <!-- {{> vis2}} -->
+  {{> allLogs}}
+
+  {{> RadioEstimateWildcardTemplate}}
+</body>
+
+<template name="hello">
+  <button>Click Me</button>
+  <p>You've pressed the button {{counter}} times.</p>
+  
+</template>
+
+<template name="hello2">
+  <button>Clear 1</button><br><br>
+</template>
+
+<template name="controlButtons">
+    <button data-key="blah.key" data-value="int(4)" data-where="rx">But 0</button>
+    <button data-key="blah.key2" data-value="bool(false)" data-where="rx">But 1</button>
+    <button data-key="blah.key3.dub" data-value="double(4.35)" data-where="rx">But 2</button>
+    <button data-key="blah.key3.dub" data-value="double(4.35)">But 3</button>
+    <button data-key="runtime.ben" data-value="string(from button 4, but we can't put any parens)" data-where="rx">But 4</button>
+    <button data-key="blah.key4" data-value="double(5.24)" data-where="rx">But 5</button><br>
+    <input id="fooInput">&nbsp;<button data-key="blah.key" data-from-id="fooInput" data-from-id-type="int">Submit</button>
+    <input id="anInput">&nbsp;<button data-key="blah.key4" data-from-id="anInput" data-from-id-type="double">Submit</button>
+    <input id="anInput2">&nbsp;<button data-key="runtime.ben" data-from-id="anInput2" data-from-id-type="string">Submit</button>
+    <input id="anInput3">&nbsp;<button data-key="blah.key2" data-from-id="anInput3" data-from-id-type="bool">Submit</button>
+</template>
+
+<template name="info">
+  <h2>Learn Meteor!</h2>
+  <ul>
+    <li><a href="https://www.meteor.com/try" target="_blank">Do the Tutorial</a></li>
+    <li><a href="http://guide.meteor.com" target="_blank">Follow the Guide</a></li>
+    <li><a href="https://docs.meteor.com" target="_blank">Read the Docs</a></li>
+    <li><a href="https://forums.meteor.com" target="_blank">Discussions</a></li>
+  </ul>
+</template>
+
+<template name="keyer">
+    <input id="keyEventInput">&nbsp;<span id="keyStatus"></span>
+    <br>
+    <br>
+</template>
+
+<template name="RadioEstimateTemplate">
+
+    <div id="reContainer">
+        {{#each reObject}}
+        <table>
+        <tr>
+        <td>
+
+        <!-- original table -->
+        <table class="reTable">
+        <tr>
+        <td class="reBasics">
+        <strong>R{{array_index}}:</strong> <br>
+        <strong>Peer Id:</strong> {{system.peer_id}}<br>
+        <strong>CFO:</strong> {{cfo.cfo_estimated}}<br>
+        <strong>CFO_S:</strong> {{cfo.cfo_estimated_sent}}<br>
+        <strong>SFO:</strong> {{sfo.sfo_estimated}}<br>
+        <strong>SFO_S:</strong> {{sfo.sfo_estimated_sent}}<br>
+        <strong>Residue T</strong> {{residue.residue_phase_trend}}<br>
+        <strong>Run BG?: </strong> {{#if fsm.control.should_run_background}}true{{else}}false{{/if}}<br>
+        <strong>State:</strong><br> {{fsm.state}} ({{lookupState}})<br>
+        <strong>Color: </strong> <div class="colorStateBox" style="background-color: {{stateColor}};"></div><br>
+        </td>
+        <td valign="top" class="reTDMA">
+        <strong>TDMA {{demod.data_subcarrier_index}}:</strong> <br>
+        <strong>Mode</strong> {{demod.last_mode_sent}} {{demod.last_mode_data_sent}}<br>
+        <strong>tdma_phase</strong> {{demod.tdma_phase}}<br>
+        <strong>#matched_6</strong> {{demod.times_matched_tdma_6}}<br>
+        <strong>track</strong> {{#if demod.track_demod_against_rx_counter}}true{{else}}false{{/if}}<br>
+        <strong>found</strong> {{#if demod.td.found_dead}}true{{else}}false{{/if}}<br>
+        <strong>sent</strong> {{#if demod.td.sent_tdma}}true{{else}}false{{/if}}<br>
+        <strong>tx</strong> {{demod.td.lifetime_tx}}<br>
+        <strong>rx</strong> {{demod.td.lifetime_rx}}<br>
+        <strong>fudge_rx</strong> {{demod.td.fudge_rx}}<br>
+        <strong>needs fudge</strong> {{#if demod.td.needs_fudge}}true{{else}}false{{/if}}<br>
+        </td>
+        </tr>
+        <tr>
+        <td>
+        Sfo:<br>
+        <strong>#sfo_est</strong> {{sfo.times_sfo_estimated}}<br>
+        </td>
+        </tr>
+        <tr>
+        <td>
+        STO:<br>
+        <strong>STO:</strong> {{sto.sto_adjustment}}<br>
+        <strong>Delta:</strong> {{sto.sto_delta}}<br>
+        </td>
+        </tr>
+        <tr>
+        <td>
+        Eq:<br>
+        <strong>#eq sent:</strong> {{eq.times_eq_sent}}<br>
+        <strong>mask_all_data:</strong> {{#if eq.should_mask_all_data_tone}}true{{else}}false{{/if}}<br>
+        <strong>mask_tdma_tone: </strong> {{#if fsm.control.should_mask_data_tone_tx_eq}}true{{else}}false{{/if}}<br>
+        </td>
+        </tr>
+        <tr>
+        <td>
+        Schedule Sync:<br>
+        
+        </td>
+        </tr>
+        <tr>
+        <td>
+        Load:<br>
+        <strong>CS20</strong> {{system.cs20.cpu_load}}<br>
+        </td>
+        </tr>
+        </table>
+        <!-- end original table -->
+        </td>
+        <td>
+        {{#if canRenderVis}}
+            {{>visSlim helperGetVis}}
+        {{else}}
+            loading...
+        {{/if}}
+        </td>
+        <td>
+        {{#if canRenderVis}}
+            {{>visSlim helperGetVis2}}
+        {{/if}}
+        </td>
+        </tr>
+        </table>
+        {{/each}}
+        
+    </div>
+
+</template>
+
+
+<template name="smodemTemplate">
+    <div id="smodemContainer">
+    {{#each smodemObject}}
+    <table class="smodemTable">
+        <tr>
+        <td>
+        <strong>Index:</strong> {{array_index}}<br>
+        <strong>PC?:</strong> <br>
+        <strong>IP:</strong> <br>
+        <strong>State?:</strong> {{fsm.state}} ({{lookupState}})<br>
+        <strong>Packets:</strong> {{data.hash.verify_tx.count_got}}/{{data.hash.verify_tx.count_sent}} {{data.hash.verify_tx.percent_correct}}% correct<br>
+        <strong>Data Rate:</strong> {{data.hash.verify_tx.bytes_per_second}}<br>
+        <strong>Color: </strong> <div class="colorStateBox" style="background-color: {{stateColor}};"></div><br>
+        </td>
+        </tr>
+        </table>
+    {{/each}}
+    </div>
+</template>
+
+<template name="logPartial">
+{{m}}<br>
+</template>
+
+<template name="allLogs">
+<table>
+<tr>
+<td>
+<div class="logs_box" id="log_0">Tx<br>{{#each logs_0}}{{> logPartial}}{{/each}}</div>
+</td>
+<td>
+<div class="logs_box" id="log_1">R<br>{{#each logs_1}}{{> logPartial}}{{/each}}</div>
+</td>
+<td>
+<div class="logs_box" id="log_2">R<br>{{#each logs_2}}{{> logPartial}}{{/each}}</div>
+</td>
+</tr>
+</table>
+
+</template>
+
+
+
+
+<template name="RadioEstimateWildcardTemplate">
+<hr>
+{{#each reObject}}
+    <h2>{{array_index}}</h2>
+    {{asJson}}
+{{/each}}
+</template>
+
+<template name="vectorTemplate">
+<hr>
+{{#each objects}}
+    <strong>{{array_index}}</strong>
+    <div class="rawVector">{{vector}}</div>
+{{/each}}
+</template>
+
+<template name="vis2">
+{{#each objects}}
+{{>vis}}
+{{/each}}
+</template>
+
+<template name="vis">
+<h4>{{getNamee}}</h4>
+  <div id="{{theSelector}}" class="visClass"></div>
+  <textarea>{{forCopy}}</textarea>
+</template>
+
+<template name="visSlim">
+
+
+<span style="position: relative; width: 0; height: 0">
+    <span style="position: absolute; left: 10px; top: 20px; width: 600px;  z-index: 1;">
+        <em>{{getNamee}}</em><br>
+        <textarea class="visCopyArea">{{forCopy}}</textarea>
+    </span>
+</span>
+
+  <div id="{{theSelector}}" class="visSlimClass"></div>
+</template>
+
+<template name="thisPageLeftBlank"></template>

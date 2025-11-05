@@ -1,9 +1,6 @@
 [submodule "libs/datapath"]
 	path = libs/datapath
 	url = git@github.com:siglabsoss/datapath.git
-[submodule "libs/higgs-dashboard"]
-	path = libs/higgs-dashboard
-	url = git@github.com:siglabsoss/higgs-dashboard.git
 [submodule "libs/riscv-baseband/VexRiscv"]
 	path = libs/riscv-baseband/VexRiscv
 	url = git@github.com:SpinalHDL/VexRiscv.git

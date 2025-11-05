@@ -1,0 +1,1 @@
+`3rd` is a folder for 3rd party libraries.  This can be like jquery or something else
