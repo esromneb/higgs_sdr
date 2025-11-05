@@ -11,7 +11,7 @@ class HexHandler:
 
 
     def get_vmem(self):
-        return self.program_opcode[(self.V_MEM_START/4):((self.V_MEM_START+self.V_MEM_LEN)/4)]
+        return self.program_opcode[(self.V_MEM_START // 4):((self.V_MEM_START + self.V_MEM_LEN) // 4)]
 
     def open_get_hex(self, filepath):
         try:
@@ -19,7 +19,7 @@ class HexHandler:
                 self.program_opcode = []
                 line = bootprogram.readline()
 
-                self.program_opcode = [0] * ((self.V_MEM_START+self.V_MEM_LEN)/4)
+                self.program_opcode = [0] * ((self.V_MEM_START + self.V_MEM_LEN) // 4)
 
                 self._parse_hex_reset()
                 while line:
@@ -62,7 +62,7 @@ class HexHandler:
                              data_out[index + 2: index+ 4] +\
                              data_out[index: index + 2], 16)
 
-                array_index = (address / 4) + (index / 8)
+                array_index = (address // 4) + (index // 8)
                 # print("index", index, "address", address, "calcaddr", hex(array_index*4), "op", hex(opcode))
                 # print("  " + line[2:6])
 
@@ -142,4 +142,3 @@ if __name__ == "__main__":
         main(options.i, [options.o0, options.o1, options.o2, options.o3, options.o4, options.o5, options.o6, options.o7, options.o8, options.o9, options.o10, options.o11, options.o12, options.o13, options.o14, options.o15])
     else:
         parser.print_help()
-

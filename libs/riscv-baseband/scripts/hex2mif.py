@@ -101,12 +101,12 @@ def main(pathin, pathsout):
         # normally llen_pegged is 4
         for jj in range(llen_pegged):
             ofs[jj].write('\n@')
-            ofs[jj].write(hex(int(addr/4))[2:])
+            ofs[jj].write(hex(addr // 4)[2:])
             ofs[jj].write('\n')
 
 
         while consume < llen*2:
-            bank = (consume/2) % 4
+            bank = (consume // 2) % 4
             bankrev = 3 - bank
 
             ofs[bank].write(bytes[consume:consume+2])
