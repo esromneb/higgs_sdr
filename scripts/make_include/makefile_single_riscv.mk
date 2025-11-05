@@ -234,11 +234,13 @@ C_HEX_PATH=$(TMP_OUTPUT)/$(PROJ_NAME).hex
 MIF_OUT_TARGETS=$(TMP_OUTPUT)/scalar0.mif $(TMP_OUTPUT)/scalar1.mif $(TMP_OUTPUT)/scalar2.mif $(TMP_OUTPUT)/scalar3.mif
 
 VMEM_MIF_OUT_TARGETS=$(TMP_OUTPUT)/vmem0.mif $(TMP_OUTPUT)/vmem1.mif $(TMP_OUTPUT)/vmem2.mif $(TMP_OUTPUT)/vmem3.mif $(TMP_OUTPUT)/vmem4.mif $(TMP_OUTPUT)/vmem5.mif $(TMP_OUTPUT)/vmem6.mif $(TMP_OUTPUT)/vmem7.mif $(TMP_OUTPUT)/vmem8.mif $(TMP_OUTPUT)/vmem9.mif $(TMP_OUTPUT)/vmem10.mif $(TMP_OUTPUT)/vmem11.mif $(TMP_OUTPUT)/vmem12.mif $(TMP_OUTPUT)/vmem13.mif $(TMP_OUTPUT)/vmem14.mif $(TMP_OUTPUT)/vmem15.mif 
+MIF_IMAGE_STAMP=$(TMP_OUTPUT)/.mif_images
 
 all: sensative_clean elf_hex_asm $(TMP_OUTPUT)/scalar0.mif
 
+$(MIF_OUT_TARGETS) $(VMEM_MIF_OUT_TARGETS): $(MIF_IMAGE_STAMP)
 
-$(MIF_OUT_TARGETS): $(C_HEX_PATH)
+$(MIF_IMAGE_STAMP): $(C_HEX_PATH)
 	@mkdir -p $(TMP_OUTPUT)
 	@python $(RISCV_BASEBAND_REPO)/scripts/hex2mif.py -i $(C_HEX_PATH) -o0 $(TMP_OUTPUT)/scalar0.mif -o1 $(TMP_OUTPUT)/scalar1.mif -o2 $(TMP_OUTPUT)/scalar2.mif -o3 $(TMP_OUTPUT)/scalar3.mif
 	@python $(RISCV_BASEBAND_REPO)/scripts/hex2mif_vmem.py -i $(C_HEX_PATH) \
@@ -258,6 +260,7 @@ $(MIF_OUT_TARGETS): $(C_HEX_PATH)
 	-o13 $(TMP_OUTPUT)/vmem13.mif \
 	-o14 $(TMP_OUTPUT)/vmem14.mif \
 	-o15 $(TMP_OUTPUT)/vmem15.mif
+	@touch $@
 
 
 mif:
