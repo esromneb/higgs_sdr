@@ -4,9 +4,6 @@
 [submodule "libs/ip-verification"]
 	path = libs/ip-verification
 	url = git@github.com:siglabsoss/ip-verification.git
-[submodule "libs/q-engine"]
-	path = libs/q-engine
-	url = git@github.com:siglabsoss/q-engine.git
 [submodule "libs/riscv-baseband"]
 	path = libs/riscv-baseband
 	url = git@github.com:siglabsoss/riscv-baseband.git
