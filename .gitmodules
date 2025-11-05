@@ -1,9 +1,6 @@
 [submodule "libs/burbulator"]
 	path = libs/burbulator
 	url = git@github.com:siglabsoss/burbulator.git
-[submodule "libs/d-engine"]
-	path = libs/d-engine
-	url = git@github.com:siglabsoss/d-engine.git
 [submodule "libs/datapath"]
 	path = libs/datapath
 	url = git@github.com:siglabsoss/datapath.git
