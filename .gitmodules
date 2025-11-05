@@ -1,6 +1,3 @@
-[submodule "libs/burbulator"]
-	path = libs/burbulator
-	url = git@github.com:siglabsoss/burbulator.git
 [submodule "libs/datapath"]
 	path = libs/datapath
 	url = git@github.com:siglabsoss/datapath.git
