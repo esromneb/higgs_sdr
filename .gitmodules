@@ -6,7 +6,7 @@
 	url = git@github.com:esromneb/rapidcheck.git
 [submodule "libs/s-modem/soapy/src/3rd/schifra"]
 	path = libs/s-modem/soapy/src/3rd/schifra
-	url = git@github.com:ArashPartow/schifra.git
+	url = git@github.com:esromneb/schifra.git
 [submodule "libs/s-modem/soapy/src/3rd/turbofec"]
 	path = libs/s-modem/soapy/src/3rd/turbofec
 	url = git@github.com:ttsou/turbofec.git
