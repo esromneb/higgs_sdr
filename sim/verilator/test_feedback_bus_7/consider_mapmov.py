@@ -11,7 +11,7 @@ def main():
 
     words = [int(l,16) for l in lines]
 
-    print "read out", len(words), "words"
+    print("read out", len(words), "words")
 
     offset = 16
     end = 48*1024
@@ -27,7 +27,7 @@ def main():
             if idx < 129 or idx > 896:
                 onlydata.append(words[x])
 
-    print "appended: ", len(onlydata)
+    print("appended: ", len(onlydata))
 
     bitpairs = [None]*len(onlydata)
 
@@ -38,20 +38,20 @@ def main():
 
 
     for x in range(len(bitpairs)):
-        print bitpairs[x],
+        print(bitpairs[x], end=" ")
         if( x % 16 == 15):
-            print ""
+            print("")
 
     reconstructed = [None] * int(len(bitpairs)/16)
 
-    print "Will reconstruct", len(reconstructed)
+    print("Will reconstruct", len(reconstructed))
 
     for x in range(0,len(bitpairs)-16,16):
         w = 0
         for j in range(16):
             w = (w >> 2) | (bitpairs[j+x]<<30)
         # flip bits
-        reconstructed[x/16] = (~w)&0xffffffff
+        reconstructed[x//16] = (~w)&0xffffffff
         # print hex( (~w)&0xffffffff)
 
 
@@ -60,7 +60,7 @@ def main():
     # tail is chopped off but whatever
     for x in range(0,250):
         idx = x + 128
-        print hex(reconstructed[idx]), hex(x)
+        print(hex(reconstructed[idx]), hex(x))
         ideal = x + 0xdead0000
 
         if reconstructed[idx] == ideal:
@@ -69,13 +69,13 @@ def main():
             wrong += 1
 
 
-    print "correct", correct
-    print "wrong", wrong
+    print("correct", correct)
+    print("wrong", wrong)
 
     if wrong != 0:
         sys.exit(1)
 
-    print "Got ", correct, " values. All tests passed"
+    print("Got ", correct, " values. All tests passed")
 
 
 
