@@ -1,6 +1,3 @@
-[submodule "libs/datapath"]
-	path = libs/datapath
-	url = git@github.com:siglabsoss/datapath.git
 [submodule "libs/riscv-baseband/VexRiscv"]
 	path = libs/riscv-baseband/VexRiscv
 	url = git@github.com:SpinalHDL/VexRiscv.git
