@@ -1,5 +1,7 @@
 #include <cstring>
+#include <cstdint>
 #include <set>
+#include <vector>
 #include "schifra_galois_field.hpp"
 #include "schifra_galois_field_polynomial.hpp"
 #include "schifra_sequential_root_generator_polynomial_creator.hpp"
