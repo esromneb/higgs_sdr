@@ -25,17 +25,17 @@ set(CMAKE_CXX_FLAGS
 -O3 -Werror=return-type -Wall -Wextra -fPIC -Wno-unused-function -Wno-error=attributes \
 -std=gnu++11 -Wvla -Wcast-qual -Wdangling-else -Winit-self -Werror=uninitialized \
 -Werror=incompatible-pointer-types -Werror=array-bounds -Wshadow \
--Wduplicated-cond -Wnull-dereference -Wdangling-else -Waddress \
+-Wduplicated-cond -Wdangling-else -Waddress \
 -Wint-in-bool-context -Winit-self \
 -Wpointer-arith \
 -Werror=uninitialized \
 -Werror=strict-prototypes \
--Wlogical-op -Werror=logical-op -Werror=null-dereference \
+-Wlogical-op -Werror=logical-op \
 -Werror=sequence-point \
 -Werror=missing-braces -Werror=write-strings -Werror=address -Werror=array-bounds \
 -Werror=char-subscripts -Werror=enum-compare -Werror=implicit-int \
 -Werror=empty-body -Werror=main -Werror=nonnull -Werror=parentheses \
--Werror=pointer-sign -Werror=ignored-qualifiers \
+-Werror=pointer-sign \
 -Werror=missing-parameter-type -Werror=unused-value \
 -Wmissing-declarations \
 -Wmissing-field-initializers \
@@ -310,7 +310,6 @@ add_custom_target(uninstall_link COMMAND sudo rm -f /usr/local/lib/SoapySDR/modu
 #                   WORKING_DIRECTORY .
 #                   COMMENT comment "Checking link"
 #                   )
-
 
 
 

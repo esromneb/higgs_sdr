@@ -36,7 +36,7 @@ const auto randomCutVector = [] (const std::vector<uint32_t>& vec, u32_vector_cb
 };
 
 
-auto rr = [&] (void) {
+auto rr = [] (void) {
     static unsigned i = 0;
     std::vector<uint32_t> v = {1,10,4,3};
 

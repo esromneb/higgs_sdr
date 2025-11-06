@@ -243,7 +243,8 @@ test:
 	make -C ../../ vall
 	make test_compile_only    # should be quick
 	make test_compile_production
-	make -j3 pre_work
+	# Limit parallel compilation to avoid exhausting GitHub-hosted runner memory.
+	make -j1 pre_work
 	# Only run tests 1:1 now that parallel compile is done
 	# If unfailing mode means that if any fail, we keep going
 	# However if any fail in normal tests, we will not get to the random ones
@@ -277,12 +278,11 @@ cleanall:
 
 
 test_compile_only:
-	@echo ""
-# 	make -C test_rx_chain vall
-# 	make -C test_energy vall
-# 	make -C verify_edge vall
-# 	make -C verify_fft_lib_opt vall
-# 	make -C test_nco vall
+	make -C test_rx_chain vall
+	make -C test_energy vall
+	make -C verify_fft_lib_opt vall
+	make -C test_nco vall
+# make -C verify_edge vall
 
 ###################
 #
