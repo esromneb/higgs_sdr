@@ -8,9 +8,10 @@ BUILD := build
 verilator:
 	rm -rf $(BUILD)/verilator
 	mkdir -p $(BUILD)/verilator
-	verilator --binary --timing -Wno-fatal -DNO_SCALAR_MIF \
-		--top-module $(TOP) --Mdir $(BUILD)/verilator $(RTL) $(TB)
-	$(BUILD)/verilator/V$(TOP) +TRACE=$(BUILD)/verilator/trace.csv
+	verilator -cc --exe -Wno-fatal -DNO_SCALAR_MIF \
+		--top-module scalar_memory_xilinx --Mdir $(BUILD)/verilator $(RTL) ../../verilator_scalar_memory_xilinx.cpp
+	$(MAKE) -C $(BUILD)/verilator -f Vscalar_memory_xilinx.mk Vscalar_memory_xilinx
+	$(BUILD)/verilator/Vscalar_memory_xilinx +TRACE=$(BUILD)/verilator/trace.csv
 
 xsim:
 	command -v xvlog >/dev/null
@@ -18,7 +19,7 @@ xsim:
 	command -v xsim >/dev/null
 	rm -rf $(BUILD)/xsim
 	mkdir -p $(BUILD)/xsim
-	cd $(BUILD)/xsim && xvlog -sv -d NO_SCALAR_MIF -work work ../../scalar_memory_xilinx.sv ../../$(TB)
+	cd $(BUILD)/xsim && xvlog -sv -d NO_SCALAR_MIF -work work ../../../../scalar_memory_xilinx.sv ../../$(TB)
 	cd $(BUILD)/xsim && xelab -debug typical -s $(TOP) work.$(TOP)
 	cd $(BUILD)/xsim && xsim $(TOP) -R -testplusarg TRACE=trace.csv
 
