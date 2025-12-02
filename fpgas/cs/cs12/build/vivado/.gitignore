@@ -1,5 +1,7 @@
 /out/
 /.Xil/
+/clockInfo.txt
+/cong/
 /*.jou
 /*.log
 /*.pb

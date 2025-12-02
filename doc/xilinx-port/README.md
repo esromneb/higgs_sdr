@@ -4,14 +4,27 @@ This directory is the committed record for the CS12 Xilinx port.  The target
 part is `xczu7ev-ffvc1156-2-e`, matching the existing `xil` branch proof of
 concept.  The reference branch was inspected only with read-only Git commands.
 
+## Overall goal
+
+Produce a board-ready Xilinx CS12 image that preserves the observable
+Lattice/Verilator behavior of the VexRiscv and Q-engine platform: the stream,
+ring-bus, reset, memory, and processor interfaces must functionally match.
+The work proceeds from proven leaves to their parents.  A successful routed
+checkpoint is an integration gate, not completion: board-specific XDC,
+bitstream generation, hardware bring-up, and CS21 parity remain required
+before the overall goal is met.
+
 The work is deliberately dependency-first: a parent is not ported until every
 changed child has a simulator parity test.  `PLAN.md` is the execution order,
 `CS12_HDL_MANIFEST.md` is the current Lattice build closure, and
 `NOTES.md` records evidence and unresolved hardware-specific decisions.
 
 Simulator tests belong alongside the specialized RTL in
-`fpgas/common/xilinx/sim`.  They use one SystemVerilog testbench for XSIM and
-Verilator, emit CSV traces, and compare those traces byte-for-byte.  For RAMs,
-the contract is functional behavior at the transaction interface; same-address
-dual-port collisions are deliberately excluded unless the production
-architecture defines them.
+`fpgas/common/xilinx/sim`.  XSIM uses a SystemVerilog harness; the installed
+Verilator 4.016 uses an equivalent cycle driver with the same vectors, seed,
+checks, and CSV schema.  The emitted traces must compare byte-for-byte.  For
+RAMs, the contract is functional behavior at the transaction interface;
+same-address dual-port collisions are deliberately excluded unless the
+production architecture defines them.  `NOTES.md` records evidence,
+deviations, and unresolved signoff work; update it at every synthesis,
+routing, test, or hardware milestone.

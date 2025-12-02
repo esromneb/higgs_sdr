@@ -2,11 +2,13 @@
 
 ## Scope and completion criteria
 
-Port CS12 first, using `xczu7ev-ffvc1156-2-e`.  The final image must elaborate,
-implement with Vivado, and function at the CS12 transaction interfaces with
-the same behavior as the Lattice/Verilator configuration.  The request's
-reference to CS21 is treated as a later parity gate after CS12 is proven; it
-does not change the initial CS12 source closure.
+Port CS12 first, using `xczu7ev-ffvc1156-2-e`.  The overall goal is a
+board-ready Xilinx image with functional parity at the VexRiscv/Q-engine
+transaction interfaces, followed by the same proof for CS21.  The final CS12
+image must implement with Vivado, meet the board-specific timing constraints,
+program successfully, and function like the Lattice/Verilator configuration.
+The request's reference to CS21 is a later parity gate; it does not change the
+initial CS12 source closure.
 
 ## Ordered work
 
@@ -25,12 +27,14 @@ does not change the initial CS12 source closure.
    crossbar/memory changes piecemeal.
 5. **Assemble VexRiscv bottom-up.** Verify generated `XbbRiscv`, its program
    memory, and `vex_machine_top` against the existing CS12 interfaces.
-6. **Create the CS12 Vivado target.** Adapt the CS01 pattern: a CS12
-   `build/vivado/build.tcl`, source manifest, portable replacement overlay,
-   125 MHz clock constraint, and board-specific XDC before bitstream use.
+6. **Create the CS12 Vivado target.** Done for synthesis and routed
+   implementation: `build/vivado/build.tcl`, `implement.tcl`, 125 MHz clock
+   constraint, and the Xilinx overlay produce a routed checkpoint.  Add the
+   board-specific XDC before bitstream use.
 7. **Integrate and prove.** Run shared XSIM/Verilator regressions from leaves
-   through CS12, synthesize/place/route, then run the existing hardware
-   bring-up tests.  Repeat the same proof for CS21 only after CS12 is stable.
+   through CS12, add a CS12-level functional test, generate/program a
+   board-constrained bitstream, then run the existing hardware bring-up tests.
+   Repeat the same proof for CS21 only after CS12 is stable.
 
 ## Milestone rule
 
@@ -39,3 +43,12 @@ own milestone.  A test must include targeted boundary cases and deterministic
 fuzzing.  XSIM-vs-Verilator is CSV equality for ordinary logic; RAM behavior
 is compared through defined read/write transactions rather than unspecified
 same-address, dual-write timing.
+
+## Current implementation boundary
+
+The routed CS12 checkpoint is an important integration result, but it is not a
+release image.  There are no board pin, I/O voltage, external-interface
+timing, configuration, or hardware bring-up constraints in the target.
+Functional parity is currently proven only for `scalar_memory`; the DSP,
+XPM vector-memory, FIFO, full Q-engine, VexRiscv, CS12, and CS21 layers still
+need their planned simulator and hardware-level evidence.

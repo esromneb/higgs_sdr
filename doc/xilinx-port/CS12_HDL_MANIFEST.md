@@ -112,3 +112,22 @@ libs/ip-library/lattice_support/gbit_mac/packages/udp_cmd_pkg.sv
 `udp_cmd_pkg.sv` is included by `cs12_top.sv`; the package include directories
 are therefore also mandatory.  The direct closure may grow when replacing
 Lattice IP with Xilinx-specific wrappers; additions must be recorded here.
+
+## CS12 Vivado replacement overlay
+
+`fpgas/cs/cs12/build/vivado/build.tcl` excludes the Lattice source named in
+the left column and adds the corresponding Xilinx implementation in the right
+column:
+
+| Lattice source | Xilinx implementation |
+| --- | --- |
+| `fpgas/common/ip/lattice/sys_pll/sys_pll.v` | `fpgas/cs/cs12/build/vivado/hdl/sys_pll.sv` |
+| `fpgas/common/modules/core_top.sv` | `fpgas/cs/cs12/build/vivado/hdl/core_top.sv` |
+| Lattice `pmi_fifo_dc` macro | `fpgas/cs/cs12/build/vivado/hdl/pmi_fifo_dc.sv` |
+| `libs/q-engine/hdl/scalar_memory.v` | `fpgas/common/xilinx/scalar_memory_xilinx.sv` |
+| `libs/q-engine/piston/hdl/memory_slice.v` | `fpgas/common/xilinx/memory_slice_xilinx.v` |
+
+The datapath manifest additionally includes
+`libs/datapath/rtl/alu54b_wrapper_xilinx.sv`; it is selected by
+`HIGGS_FPGA_XILINX` inside its wrapper.  The replacement overlay is sufficient
+for the committed routed checkpoint, not for board programming.

@@ -12,3 +12,10 @@ It replaces the Lattice PLL, `core_top`, `pmi_fifo_dc`, Q-engine scalar
 memory, and vector-memory `memory_slice` with Xilinx implementations.  It
 synthesizes successfully with Vivado 2025.2.  Board-specific pin/I/O timing
 constraints are still required before bitstream generation or hardware use.
+
+After synthesis succeeds, implement the checkpoint with:
+
+```sh
+LD_PRELOAD=/lib/x86_64-linux-gnu/libudev.so.1 \
+    /opt/amd/2025.2/Vivado/bin/vivado -mode batch -source implement.tcl
+```
