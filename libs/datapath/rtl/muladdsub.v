@@ -5,6 +5,13 @@
 
 `timescale 1 ns / 1 ps
 
+`ifdef VERILATE
+`define HIGGS_MULADDSUB_BEHAVIORAL_IMPL
+`endif
+
+`ifdef HIGGS_FPGA_XILINX
+`define HIGGS_MULADDSUB_BEHAVIORAL_IMPL
+`endif
 
 module muladdsub (CLK0, CE0, CE1, CE2, RST0, ADDNSUB, A0, A1, B0, B1,
     SUM)/* synthesis NGD_DRC_MASK=1 */;
@@ -17,7 +24,7 @@ module muladdsub (CLK0, CE0, CE1, CE2, RST0, ADDNSUB, A0, A1, B0, B1,
     input wire [17:0] A0, A1, B0, B1;
     output wire [35:0] SUM;
 
-`ifdef VERILATE
+`ifdef HIGGS_MULADDSUB_BEHAVIORAL_IMPL
 
     reg [17:0] A0_r, A1_r, B0_r, B1_r;
 
@@ -776,3 +783,7 @@ module muladdsub (CLK0, CE0, CE1, CE2, RST0, ADDNSUB, A0, A1, B0, B1,
 `endif
 
 endmodule
+
+`ifdef HIGGS_MULADDSUB_BEHAVIORAL_IMPL
+`undef HIGGS_MULADDSUB_BEHAVIORAL_IMPL
+`endif

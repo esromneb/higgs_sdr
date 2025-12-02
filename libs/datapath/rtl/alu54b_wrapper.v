@@ -6,7 +6,16 @@ module alu54b_wrapper
    output wire [54:0] c,
    input wire 	      clk,rst);
 
-`ifdef VERILATE
+`ifdef HIGGS_FPGA_XILINX
+   alu54b_wrapper_xilinx xilinx_shim (
+      .a(a),
+      .b(b),
+      .subadd(subadd),
+      .ce(ce),
+      .c(c),
+      .clk(clk),
+      .rst(rst));
+`elsif VERILATE
    always @(posedge clk or posedge rst)
      if(rst)
        c<=0;
@@ -242,4 +251,3 @@ module alu54b_wrapper
 `endif
 
 endmodule
-

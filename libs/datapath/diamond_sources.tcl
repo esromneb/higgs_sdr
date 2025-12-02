@@ -21,6 +21,6 @@ set abs_path [ file dirname [ file normalize [ info script ] ] ]; # ABSOLUTE PAT
 
 # prj_src add $abs_path/hdl/dpram.sv
 prj_src add $abs_path/rtl/alu54b_wrapper.v
+prj_src add $abs_path/rtl/alu54b_wrapper_xilinx.sv
 prj_src add $abs_path/rtl/muladdsub.v
-
 
