@@ -46,6 +46,31 @@
   `muladdsub` and `alu54b_wrapper_xilinx`, allowing Vivado to map the design
   to DSP48E2.  These replacements are integrated and routed but do not yet
   have dedicated cross-simulator parity tests.
+- `memory_slice_xilinx` (the XPM true-dual-port vector memory used by
+  Q-engine piston) now has a directed-plus-fuzz legacy-vs-Xilinx parity
+  harness at `fpgas/common/xilinx/sim/memory_slice/`.  Unlike
+  `scalar_memory`'s simulator-only self-consistency check, this harness
+  instantiates the legacy reference `memory_slice.v` and
+  `memory_slice_xilinx.v` side by side (`memory_slice_dual_top.sv`) and
+  self-checks their outputs directly against each other every cycle, in
+  addition to XSIM-vs-Verilator CSV trace comparison.  Verilator 4.016
+  cannot parse the real vendor `xpm_memory.sv`, so its build substitutes a
+  small hand-written behavioral model
+  (`xpm_memory_tdpram_verilator_model.sv`) implementing only the exact
+  configuration this design uses; XSIM always uses the real vendor model.
+  A throwaway probe against the real `xpm_memory_tdpram` confirmed: `ena=0`
+  holds the previous output value, write-first shows new data at the same
+  one-cycle latency as a read, and same-address same-cycle access across
+  ports with at least one write yields `x` (hardware-undefined, matching the
+  reference `dpram`).  Both the legacy `dpram` and `xpm_memory_tdpram` commit
+  writes whenever `we` is asserted, independent of `valid`; an earlier
+  version of the fuzz stimulus incorrectly gated its same-address collision
+  avoidance on `valid && we` instead of `we` alone, which missed real
+  collisions and was fixed.  `make compare` treats any field reporting `x` as
+  a don't-care match; in practice `x` only appears in the first post-reset
+  cycle for port-1 pipeline registers before their first real transaction
+  (a benign Verilator-zero-init vs. XSIM-leaves-undefined convention
+  difference, confirmed to never recur across all 522 traced cycles).
 
 ## Memory policy
 
