@@ -20,6 +20,9 @@ does not change the initial CS12 source closure.
    PLL and any vendor DSP/IP only after their portable behavior is covered.
 4. **Assemble Q-engine bottom-up.** Verify each leaf, then DMA, ring bus,
    piston/vector memory, and `q_engine`.
+   Before porting `vmem_dat_6_5_1_0`, inspect `fixcrossbar_higgs`; it may be
+   necessary to take that complete, known-good commit rather than recreate its
+   crossbar/memory changes piecemeal.
 5. **Assemble VexRiscv bottom-up.** Verify generated `XbbRiscv`, its program
    memory, and `vex_machine_top` against the existing CS12 interfaces.
 6. **Create the CS12 Vivado target.** Adapt the CS01 pattern: a CS12
