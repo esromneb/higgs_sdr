@@ -83,7 +83,7 @@ libs/q-engine/piston/hdl/ka_decode_ctrl_1_3.v
 libs/q-engine/piston/hdl/p_decode_dat_1_2.v
 libs/q-engine/piston/hdl/p_decode_ctrl_1_2.v
 libs/q-engine/piston/hdl/perm_full_addr_dat_1_1.v
-libs/q-engine/piston/hdl/perm_full_data_dat_1_1.v
+libs/q-engine/piston/hdl/perm_full_data_dat_2_1.v
 libs/q-engine/piston/hdl/perm_addr_dat_1_1.v
 libs/q-engine/piston/hdl/perm_addr_slice.v
 libs/q-engine/piston/hdl/perm_data_dat_2_1.v

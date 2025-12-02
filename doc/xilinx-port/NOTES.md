@@ -242,3 +242,39 @@ mature Verilator-based multi-FPGA system test suite already exists under
 separate undertaking and was intentionally not started without explicit
 scope confirmation, since it is a different order of effort than the
 leaf-harness work above.
+
+## 2025-12-01: `XbbRiscv`/VexRiscv sweep and `vex_machine_top` integration harness
+
+- **`XbbRiscv.v` (the generated VexRiscv wrapper, `libs/riscv-baseband/hdl/generated/`)
+  needs no dedicated leaf parity harness.** Inspected in full: pure portable
+  Verilog with no vendor-specific memory or DSP macros, no
+  `HIGGS_FPGA_XILINX`/`VERILATE`/`VERILATE_DEF` conditionals of its own.
+  Its correctness (real instruction fetch/execute, bus/CSR decode reaching
+  a real peripheral) is instead proven as part of the new
+  `vex_machine_top` integration harness below, which is a stronger, more
+  direct test than an isolated leaf harness would have been (a leaf
+  harness would have needed synthetic bus stimulus; running a real
+  compiled program exercises the same logic paths for real).
+- **Built `fpgas/common/xilinx/sim/vex_machine_top/`**, a system-level
+  integration smoke test (not a per-leaf harness) satisfying PLAN item 7 in
+  place of porting `sim/verilator` (explicitly out of scope for this
+  port). Assembles the entire real design reachable from
+  `fpgas/common/modules/vex_machine_top.v` (VexRiscv, `q_engine` bus/CSR
+  decode, GPIO, all piston/DMA/ring-bus/NCO/vector-memory leaves) and runs
+  one real, compiled RISC-V program (built with the real
+  `/opt/riscv/bin/riscv32-unknown-elf-gcc` toolchain against the existing,
+  previously-unused `libs/riscv-baseband/c/inc/crt_standard.S`/`ld_standard`
+  infrastructure) through it under both Verilator and XSIM, comparing
+  cycle traces. See that harness's `README.md` for full scope, the
+  discovered `nco.v` forward-reference bug (tolerated by Verilator/Vivado,
+  rejected by XSIM; fixed via a build-only generated copy, no legacy
+  source modified), the XSIM "timescale mixing is all-or-nothing" rule
+  (distinct from, and broader than, the single-pair fix already used for
+  `generic_dpram`/`generic_fifo_sc_a`), and full validation results
+  (`make compare` passes deterministically across repeated clean rebuilds;
+  all six pre-existing leaf harnesses re-confirmed passing afterward, no
+  cross-contamination).
+- Fixed a real, pre-existing typo in `doc/xilinx-port/CS12_HDL_MANIFEST.md`
+  (line 86: `perm_full_data_dat_1_1.v` → `perm_full_data_dat_2_1.v`,
+  matching the file that actually exists), discovered while cross-checking
+  this harness's Verilog manifest against that document.

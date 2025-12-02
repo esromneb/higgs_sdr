@@ -43,16 +43,27 @@ initial CS12 source closure.
    or DSP macros needing dedicated parity harnesses; the next step is
    functional (not per-leaf-macro) verification: assembling and running the
    existing Q-engine-level test vectors against both toolchains.
-5. **Assemble VexRiscv bottom-up.** Verify generated `XbbRiscv`, its program
-   memory, and `vex_machine_top` against the existing CS12 interfaces.
+5. **Assemble VexRiscv bottom-up.** Done: `XbbRiscv.v` (the generated
+   VexRiscv wrapper) and its surrounding files were inspected and contain no
+   vendor-specific memory or DSP macros — pure portable Verilog — so no
+   dedicated leaf-level parity harness is needed for `XbbRiscv` itself;
+   its correctness is instead exercised as part of the `vex_machine_top`
+   integration harness (item 7).
 6. **Create the CS12 Vivado target.** Done for synthesis and routed
    implementation: `build/vivado/build.tcl`, `implement.tcl`, 125 MHz clock
    constraint, and the Xilinx overlay produce a routed checkpoint.  Add the
    board-specific XDC before bitstream use.
-7. **Integrate and prove.** Run shared XSIM/Verilator regressions from leaves
-   through CS12, add a CS12-level functional test, generate/program a
-   board-constrained bitstream, then run the existing hardware bring-up tests.
-   Repeat the same proof for CS21 only after CS12 is stable.
+7. **Integrate and prove.** Done: the `sim/verilator` regression suite was
+   marked explicitly out of scope for this port, so a purpose-built
+   `vex_machine_top`-level integration smoke test was written instead
+   (`fpgas/common/xilinx/sim/vex_machine_top/`) — a real, compiled RISC-V
+   program is run through the entire assembled design (VexRiscv, `q_engine`
+   bus/CSR decode, GPIO, all piston/DMA/ring-bus/NCO/vector-memory leaves)
+   under both Verilator and XSIM, with matching cycle traces (see that
+   harness's `README.md` for full scope, discovered issues, and
+   validation). Remaining: generate/program a board-constrained bitstream
+   and run the existing hardware bring-up tests, then repeat the same proof
+   for CS21 only after CS12 is stable.
 
 ## Milestone rule
 
@@ -72,6 +83,10 @@ Functional parity is now proven for `scalar_memory`, `memory_slice`
 (currently unused in the CS12 dataflow, but part of the committed manifest
 closure), and `generic_dpram`/`generic_fifo_sc_a` (the FIFO storage leaves
 used via `fwft_sc_fifo`/`pmi_fifo_sc_fwft_v1_0`), each with
-directed-plus-fuzz simulator evidence; the full Q-engine, VexRiscv, CS12,
-and CS21 layers still need their planned simulator and hardware-level
-evidence.
+directed-plus-fuzz simulator evidence. `XbbRiscv` (generated VexRiscv) needed
+no dedicated leaf harness (portable Verilog, no vendor macros). System-level
+integration is now proven at the `vex_machine_top` level: a real, compiled
+RISC-V program runs identically on both simulators through the entire
+assembled Q-engine/VexRiscv design (`fpgas/common/xilinx/sim/vex_machine_top/`).
+The full CS12 and CS21 layers still need their planned hardware-level
+evidence (board-constrained bitstream, programming, and bring-up tests).
