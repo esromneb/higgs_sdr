@@ -175,6 +175,27 @@
   covered; `vmem_dat_6_5.v`'s `n_mem_payload_*`/`q_mem_payload_*` arrays are
   small (16-deep) plain register arrays with no macro dependency, and the
   actual vector-memory RAM leaf is `memory_slice` (already covered).
+- **Confirmed the same simulation-bypass pattern independently for
+  `core_reset`/`sys_pll`.** `core_top.sv` (the CS12 manifest's replaced
+  top-level module) gates its own `core_reset` instantiations behind
+  `if (VERILATE) assign o_sys_clk_srsts = i_fpga_ext_arst; else core_reset
+  #(...) ...`, i.e. `core_reset` (and therefore its internal
+  `` `ifdef VERILATE_DEF `` branch, which itself has a real, pre-existing
+  bug-compatible divergence — it hardcodes a fixed 1-clock reset-hold
+  delay instead of honoring the real, per-output `EXTRA_RESET_CLOCKS`
+  parameter) is never instantiated at all for CS12 under any `VERILATE=1`
+  simulation run.  Combined with the `pmi_fifo_dc`/`sys_pll` finding above,
+  every clock/reset-domain primitive this port's overlay replaces is
+  architecturally bypassed for simulation the same way, for both
+  toolchains, predating this porting effort — confirming PLAN.md item 3
+  ("leaf arithmetic and clock/reset primitives") has no further
+  vendor-macro leaves needing dedicated parity harnesses beyond
+  `muladdsub`/`alu54b_wrapper` (the only two clock/reset-adjacent leaves
+  actually exercised under `VERILATE=1`).  Also confirmed (via targeted
+  `` `ifdef VERILATE_DEF ``/`HIGGS_FPGA_XILINX` greps across every
+  manifest-closure file) that `ring_bus.v`, `dma_out.v`, and `q_engine.v`'s
+  own `VERILATE_DEF` blocks are exclusively `` /*verilator public*/ ``
+  debug-accessor hooks or a debug counter, with no functional divergence.
 
 ## Memory policy
 
@@ -200,3 +221,24 @@ CS12 now has a routed integration checkpoint, but that is not functional or
 board signoff.  The remaining proof is leaf-to-top simulator parity,
 board-specific constraints, bitstream generation, programming, hardware
 bring-up, and the subsequent CS21 port.
+
+As of the `generic_dpram`/`generic_fifo_sc_a` milestone, every CS12-manifest
+leaf with a genuine Lattice-vs-Xilinx or simulator-divergent behavior under
+`VERILATE=1` (the convention every simulated run in this repo uses) has a
+directed-plus-fuzz parity harness: `scalar_memory`, `memory_slice`,
+`muladdsub`, `alu54b_wrapper`, `generic_dpram`, `generic_fifo_sc_a`.  A
+systematic sweep of every remaining manifest file for `HIGGS_FPGA_XILINX`/
+`VERILATE`/`VERILATE_DEF` conditionals (see above) found no further leaves
+needing dedicated harnesses: the clock/reset/dual-clock-FIFO primitives
+(`sys_pll`, `core_reset`, `pmi_fifo_dc`) are all bypassed for simulation by
+design (both toolchains, predating this port), and the remaining
+`VERILATE_DEF` occurrences in `ring_bus.v`/`dma_out.v`/`q_engine.v` are
+debug-only accessor hooks.  What remains toward "leaf-to-top simulator
+parity" is therefore integration-level, not per-leaf: assembling and running
+functional test vectors through the composed Q-engine (DMA, ring bus,
+piston/vector memory) and VexRiscv against both toolchains.  A large,
+mature Verilator-based multi-FPGA system test suite already exists under
+`sim/verilator/` (hundreds of tests); porting it to XSIM is a substantial,
+separate undertaking and was intentionally not started without explicit
+scope confirmation, since it is a different order of effort than the
+leaf-harness work above.
