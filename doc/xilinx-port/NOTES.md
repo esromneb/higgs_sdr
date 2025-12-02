@@ -278,3 +278,51 @@ leaf-harness work above.
   (line 86: `perm_full_data_dat_1_1.v` → `perm_full_data_dat_2_1.v`,
   matching the file that actually exists), discovered while cross-checking
   this harness's Verilog manifest against that document.
+
+## 2025-12-01/02: `sim/verilator/test_fft_lib_1` ported to XSIM (full ring-bus parity)
+
+- Despite the "porting `sim/verilator` is out of scope" note above, this
+  one existing Verilator test (`sim/verilator/test_fft_lib_1`, a real
+  multi-FPGA CS20 FFT-library regression, not a synthetic leaf harness)
+  was explicitly requested and ported to XSIM, reusing `tb.cpp`'s exact
+  reset/stimulus/self-check logic in a new hand-written SystemVerilog
+  testbench, `tb_higgs_top_xsim.sv`, against the unmodified
+  `sim/hdl/tb_higgs_top.sv` DUT. See that test's own `README.md` for the
+  full write-up; the two findings below are broadly applicable beyond
+  this one test and are recorded here for that reason.
+- **Missing register reset values (X-propagation) is a systemic issue
+  across (at least) three independent IP trees**: Q-engine/piston
+  (48 files), RISC-V-baseband's `fwft_sc_fifo.v`, and the generated
+  8588-line `XbbRiscv.v` (497 regs). All were written and only verified
+  against Verilator's 2-state engine (which implicitly starts every `reg`
+  at `0`); XSIM is a real 4-state simulator where an unreset `reg` stays
+  `X` until its first write, and elastic-pipeline handshake idioms in
+  this codebase routinely gate that first write behind an expression that
+  itself reads the still-`X` reg, causing permanent, unresolvable `X`
+  propagation (observed as a full simulation hang). This is a
+  pre-synthesis-simulation-only artifact — real silicon's flip-flop
+  power-on `INIT` state is `0` absent an explicit initializer, matching
+  Verilator's assumption — so the fix (`xsim_reg_init_fix.py`, mechanically
+  adding `= 1'b0` to every internal, non-array `reg` declaration lacking
+  one) is applied only to build-only generated copies, never to committed
+  legacy RTL. **Any future XSIM harness reaching these same three IP
+  trees (Q-engine/piston, `fwft_sc_fifo`, generated VexRiscv) should
+  expect to need the same class of fix**, and can reuse
+  `sim/verilator/test_fft_lib_1/xsim_reg_init_fix.py` directly.
+- **Testbench-only bug, not a DUT bug**: the new `tb_higgs_top_xsim.sv`
+  initially tied the DUT's only genuine UART RX input
+  (`snap_eth_io_uart_rxd`) to a permanent logic-0 "break" condition
+  instead of matching `tb.cpp`'s idle-high (`1`) convention
+  (`inc/higgs_helper.hpp`'s `handle_uart_neg()`). This caused `eth_top`'s
+  own onboard firmware (a separate CPU tile from the FFT-test firmware
+  under test) to spuriously re-trigger its periodic ring-bus telemetry
+  path hundreds of extra times, an artifact invisible to `tb.cpp`'s loose
+  first/last-item self-check but which prevented an exact item-for-item
+  match against Verilator. Fixed by tying it to `1`. This is a testbench-
+  stimulus lesson (any new XSIM/SV testbench must idle-drive UART-style
+  RX inputs high, not low/zero, to match the reference C++ harness), not
+  a finding about the DUT itself.
+- **Result**: confirmed exact match — both simulators produce
+  `Ring got out 8 items.`, `[0xdeadbeef, 0x34, 0x6, 0x2, 0x1, 0x0, 0x0,
+  0xf]`, and `All Tests Passed`, reproduced across two independent clean
+  `xsim_run` invocations (determinism check).

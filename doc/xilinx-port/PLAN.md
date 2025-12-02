@@ -64,6 +64,18 @@ initial CS12 source closure.
    validation). Remaining: generate/program a board-constrained bitstream
    and run the existing hardware bring-up tests, then repeat the same proof
    for CS21 only after CS12 is stable.
+8. **Port `sim/verilator/test_fft_lib_1` to XSIM.** Done: a real,
+   pre-existing multi-FPGA Verilator regression (not a synthetic leaf
+   harness) now also runs under XSIM via `tb_higgs_top_xsim.sv`, a
+   hand-written SystemVerilog testbench mirroring `tb.cpp`'s exact
+   stimulus/self-check. Confirmed an exact 8-item ring-bus match to
+   Verilator's reference output on two independent runs. This surfaced
+   two broadly-applicable findings recorded in `NOTES.md`: a systemic
+   missing-register-reset (X-propagation) issue across Q-engine/piston,
+   `fwft_sc_fifo.v`, and generated `XbbRiscv.v` (fixed via a reusable
+   build-only patch script, `xsim_reg_init_fix.py`), and a UART-RX
+   idle-level testbench-stimulus convention that any future SV testbench
+   must match. See that test's `README.md` for full detail.
 
 ## Milestone rule
 
@@ -88,5 +100,11 @@ no dedicated leaf harness (portable Verilog, no vendor macros). System-level
 integration is now proven at the `vex_machine_top` level: a real, compiled
 RISC-V program runs identically on both simulators through the entire
 assembled Q-engine/VexRiscv design (`fpgas/common/xilinx/sim/vex_machine_top/`).
+A real pre-existing Verilator regression, `sim/verilator/test_fft_lib_1`,
+now also has full XSIM parity (exact 8-item ring-bus match), which
+surfaced and fixed a systemic missing-register-reset (X-propagation)
+issue reusable by any future harness touching Q-engine/piston,
+`fwft_sc_fifo`, or generated VexRiscv, plus a UART-RX testbench-stimulus
+convention finding (see `NOTES.md`).
 The full CS12 and CS21 layers still need their planned hardware-level
 evidence (board-constrained bitstream, programming, and bring-up tests).
