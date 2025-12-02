@@ -44,8 +44,8 @@
 - The datapath portability change is committed in the `libs/datapath`
   submodule (`973676c`).  `HIGGS_FPGA_XILINX` selects behavioral
   `muladdsub` and `alu54b_wrapper_xilinx`, allowing Vivado to map the design
-  to DSP48E2.  These replacements are integrated and routed but do not yet
-  have dedicated cross-simulator parity tests.
+  to DSP48E2.  `muladdsub` now has dedicated cross-simulator parity evidence
+  (see below); `alu54b_wrapper`/`alu54b_wrapper_xilinx` do not yet.
 - `memory_slice_xilinx` (the XPM true-dual-port vector memory used by
   Q-engine piston) now has a directed-plus-fuzz legacy-vs-Xilinx parity
   harness at `fpgas/common/xilinx/sim/memory_slice/`.  Unlike
@@ -71,6 +71,25 @@
   cycle for port-1 pipeline registers before their first real transaction
   (a benign Verilator-zero-init vs. XSIM-leaves-undefined convention
   difference, confirmed to never recur across all 522 traced cycles).
+- `muladdsub` (the multiply-add/sub DSP macro instantiated 16 times in
+  Q-engine `piston.v`) now has a directed-plus-fuzz parity harness at
+  `fpgas/common/xilinx/sim/muladdsub/`.  Unlike `memory_slice`, it has no
+  separate Xilinx implementation file: `HIGGS_FPGA_XILINX` and `VERILATE`
+  both select the identical `HIGGS_MULADDSUB_BEHAVIORAL_IMPL` branch inside
+  `muladdsub.v` (the real Lattice `ALU54B`/`MULT18X18D` primitive path is
+  used only for the Lattice hardware build and cannot be simulated by either
+  tool here).  Because both simulators run the same source lines, the test
+  self-checks the DUT every cycle against an independent hand-written model
+  of the 3-stage, per-stage-CE-gated pipeline (rather than relying only on
+  cross-simulator trace agreement, which would not catch a bug common to
+  both).  XSIM compiles with `-d HIGGS_FPGA_XILINX` (matching the real CS12
+  Vivado build define) and Verilator with `+define+VERILATE` (this repo's
+  existing convention); `make compare` shows their traces are byte-identical
+  with zero `x` occurrences (this leaf's async `RST0` clears every pipeline
+  stage immediately, so nothing is ever left undefined, unlike
+  `memory_slice`).  `alu54b_wrapper`/`alu54b_wrapper_xilinx` remain untested
+  and, unlike `muladdsub`, are not currently instantiated anywhere in the
+  CS12 dataflow (only their own testbench references `alu54b_wrapper`).
 
 ## Memory policy
 

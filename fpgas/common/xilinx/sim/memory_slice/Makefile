@@ -46,7 +46,7 @@ xsim: gen
 	cd $(BUILD)/xsim && xsim $(TOP) -R -testplusarg TRACE=trace.csv
 
 compare: verilator xsim
-	python3 compare_traces.py $(BUILD)/verilator/trace.csv $(BUILD)/xsim/trace.csv
+	python3 ../compare_traces.py $(BUILD)/verilator/trace.csv $(BUILD)/xsim/trace.csv
 
 clean:
 	rm -rf $(BUILD)

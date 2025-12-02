@@ -49,7 +49,8 @@ same-address, dual-write timing.
 The routed CS12 checkpoint is an important integration result, but it is not a
 release image.  There are no board pin, I/O voltage, external-interface
 timing, configuration, or hardware bring-up constraints in the target.
-Functional parity is now proven for `scalar_memory` and `memory_slice`
-(XPM vector memory), each with directed-plus-fuzz simulator evidence; the
-DSP, FIFO, full Q-engine, VexRiscv, CS12, and CS21 layers still need their
-planned simulator and hardware-level evidence.
+Functional parity is now proven for `scalar_memory`, `memory_slice`
+(XPM vector memory), and `muladdsub`, each with directed-plus-fuzz simulator
+evidence; `alu54b_wrapper`/`alu54b_wrapper_xilinx` (currently unused in the
+CS12 dataflow), the FIFO, full Q-engine, VexRiscv, CS12, and CS21 layers
+still need their planned simulator and hardware-level evidence.

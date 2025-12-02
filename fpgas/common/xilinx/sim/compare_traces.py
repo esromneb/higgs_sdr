@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
-"""Cross-simulator trace comparator for the memory_slice parity harness.
+"""Shared cross-simulator CSV trace comparator for the Xilinx-port parity
+harnesses under fpgas/common/xilinx/sim/*.
 
-A plain byte-for-byte `cmp` is too strict: several output fields are backed by
-registers that are genuinely uninitialized before the first real transaction
-loads them (the vendor `xpm_memory_tdpram` output-data/address registers, and
-downstream pipeline stages derived from them, such as `i1_valid`).  Verilator
-zero-initializes such registers by default, while XSIM (matching real
-silicon) leaves them as `x`.  Both are correct: whenever either trace reports
-`x` for a field, the value is architecturally undefined there, so it is
-treated as matching anything (the same "don't-care" convention already
-established for the harness's live self-checks and confirmed empirically
-against the real `xpm_memory_tdpram` primitive -- see README.md).  Every
-column where both sides report a defined value must match exactly.
+A plain byte-for-byte `cmp` is too strict for leaves with genuinely
+uninitialized registers (e.g. `memory_slice`'s vendor `xpm_memory_tdpram`
+output-data/address registers, and downstream pipeline stages derived from
+them). Verilator zero-initializes such registers by default, while XSIM
+(matching real silicon) leaves them as `x`. Both are correct: whenever either
+trace reports `x` for a field, the value is architecturally undefined there,
+so it is treated as matching anything (the same "don't-care" convention
+already established for each harness's live self-checks; see each harness's
+README.md for the specific evidence). Every column where both sides report a
+defined value must match exactly.
 """
 
 import sys
