@@ -44,8 +44,8 @@
 - The datapath portability change is committed in the `libs/datapath`
   submodule (`973676c`).  `HIGGS_FPGA_XILINX` selects behavioral
   `muladdsub` and `alu54b_wrapper_xilinx`, allowing Vivado to map the design
-  to DSP48E2.  `muladdsub` now has dedicated cross-simulator parity evidence
-  (see below); `alu54b_wrapper`/`alu54b_wrapper_xilinx` do not yet.
+  to DSP48E2.  `muladdsub` and `alu54b_wrapper`/`alu54b_wrapper_xilinx` now
+  both have dedicated cross-simulator parity evidence (see below).
 - `memory_slice_xilinx` (the XPM true-dual-port vector memory used by
   Q-engine piston) now has a directed-plus-fuzz legacy-vs-Xilinx parity
   harness at `fpgas/common/xilinx/sim/memory_slice/`.  Unlike
@@ -87,9 +87,33 @@
   existing convention); `make compare` shows their traces are byte-identical
   with zero `x` occurrences (this leaf's async `RST0` clears every pipeline
   stage immediately, so nothing is ever left undefined, unlike
-  `memory_slice`).  `alu54b_wrapper`/`alu54b_wrapper_xilinx` remain untested
-  and, unlike `muladdsub`, are not currently instantiated anywhere in the
-  CS12 dataflow (only their own testbench references `alu54b_wrapper`).
+  `memory_slice`).
+- `alu54b_wrapper` (the Lattice `ALU54B` 55-bit add/sub wrapper) now has a
+  directed-plus-fuzz legacy-vs-Xilinx parity harness at
+  `fpgas/common/xilinx/sim/alu54b_wrapper/`, following the same
+  dual-instantiation pattern as `memory_slice` since it *does* have a
+  distinct Xilinx implementation file (`alu54b_wrapper_xilinx.sv`). Both
+  testbenches force `alu54b_wrapper.v`'s `VERILATE` behavioral branch (the
+  only branch either open-source simulator can elaborate; the real Lattice
+  `ALU54B` primitive path is hardware-build-only). Verilator 4.016 rejects
+  that branch's procedural assignment to the ANSI-declared `output wire c`
+  port (`%Error-PROCASSWIRE`) even though Vivado's synthesizer already
+  accepts it for the real CS12 build; the harness's build-only `gen` step
+  patches this one port declaration to `reg` in a generated, renamed copy
+  (no behavioral effect, and the committed legacy source is never modified)
+  to unblock Verilator elaboration for both simulators' builds. Verilator
+  also emits non-fatal `%Warning-WIDTH` notices about the add/sub only
+  "naturally" computing at 36 bits before assignment-context sign-extension
+  widens it to the 55-bit output; the harness's per-cycle self-check
+  (`ref_c !== xil_c`) across signed-extreme-operand directed vectors and a
+  1000-iteration fuzz test confirms the final stored value is always
+  full-precision-correct regardless of that warning. As with `muladdsub`,
+  `rst` is asynchronous and clears the output immediately, so traces are
+  effectively byte-identical with zero `x` occurrences. `alu54b_wrapper`
+  remains unused anywhere in the active CS12 dataflow (`muladdsub` is used
+  instead); this harness closes the previously-flagged parity-evidence gap
+  for it regardless, since it remains part of the committed
+  `CS12_HDL_MANIFEST.md` closure.
 
 ## Memory policy
 
