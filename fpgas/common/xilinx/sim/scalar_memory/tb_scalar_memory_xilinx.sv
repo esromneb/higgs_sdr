@@ -31,7 +31,7 @@ module tb_scalar_memory_xilinx;
     reg [3:0] fuzz_mask0, fuzz_mask1;
     reg [31:0] fuzz_data0, fuzz_data1;
 
-    scalar_memory_xilinx #(
+    scalar_memory #(
         .AWIDTH(3),
         .DEPTH(DEPTH)
     ) dut (

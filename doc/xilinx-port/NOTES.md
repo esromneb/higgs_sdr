@@ -18,6 +18,15 @@
 - When the port reaches `vmem_dat_6_5_1_0`, inspect `fixcrossbar_higgs` and
   consider importing its complete relevant commit.  This is an explicit
   implementation dependency, not a request to duplicate the change manually.
+- The `fixcrossbar_higgs` `42eeee2` crossbar change was inspected when Vivado
+  reached vector memory.  It still instantiates `memory_slice`, so it does not
+  solve the unsupported RAM template and is intentionally not imported into
+  the CS12 Xilinx port.
+- CS12 synthesis completed successfully on 2025-12-01 for
+  `xczu7ev-ffvc1156-2-e`.  The generated artifacts are
+  `cs12_synth.dcp`, `cs12_synth_utilization.rpt`, and
+  `cs12_synth_timing_summary.rpt` beneath `fpgas/cs/cs12/build/vivado/out`.
+  They are intentionally ignored build products.
 
 ## Memory policy
 

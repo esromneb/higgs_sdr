@@ -9,9 +9,9 @@ verilator:
 	rm -rf $(BUILD)/verilator
 	mkdir -p $(BUILD)/verilator
 	verilator -cc --exe -Wno-fatal -DNO_SCALAR_MIF \
-		--top-module scalar_memory_xilinx --Mdir $(BUILD)/verilator $(RTL) ../../verilator_scalar_memory_xilinx.cpp
-	$(MAKE) -C $(BUILD)/verilator -f Vscalar_memory_xilinx.mk Vscalar_memory_xilinx
-	$(BUILD)/verilator/Vscalar_memory_xilinx +TRACE=$(BUILD)/verilator/trace.csv
+		--top-module scalar_memory --Mdir $(BUILD)/verilator $(RTL) ../../verilator_scalar_memory_xilinx.cpp
+	$(MAKE) -C $(BUILD)/verilator -f Vscalar_memory.mk Vscalar_memory
+	$(BUILD)/verilator/Vscalar_memory +TRACE=$(BUILD)/verilator/trace.csv
 
 xsim:
 	command -v xvlog >/dev/null

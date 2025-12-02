@@ -1,4 +1,4 @@
-#include "Vscalar_memory_xilinx.h"
+#include "Vscalar_memory.h"
 #include "verilated.h"
 
 #include <array>
@@ -139,7 +139,7 @@ class Testbench {
         ++errors_;
     }
 
-    Vscalar_memory_xilinx top_;
+    Vscalar_memory top_;
     std::array<uint32_t, 8> expected_{};
     std::ofstream trace_;
     unsigned cycle_ = 0;

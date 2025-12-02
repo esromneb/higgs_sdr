@@ -1,4 +1,4 @@
-module scalar_memory_xilinx #(
+module scalar_memory #(
     parameter AWIDTH = 13,
     parameter DEPTH = 8192,
     parameter SCALAR_MEM_0 = "scalar0.mif",
