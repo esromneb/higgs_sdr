@@ -146,6 +146,35 @@
   and elaborated parameter values should always be spot-checked (e.g. via a
   `%Warning-WIDTH` log line) whenever this pattern is used with
   non-default parameters.
+- **Investigated and scoped out: `pmi_fifo_dc` (the Lattice dual-clock
+  async FIFO macro, replaced for the Xilinx CS12 build by an
+  `xpm_fifo_async`-based wrapper at `fpgas/cs/cs12/build/vivado/hdl/pmi_fifo_dc.sv`,
+  reached from the manifest via `mib_cdc.sv` → `pmi_fifo_dc_fwft_v1_0.sv`).**
+  Traced its actual reachability: `mib_cdc.sv`'s own `VERILATE` generate
+  branch (independent of `pmi_fifo_dc_fwft_v1_0`'s internal `VERILATE`
+  parameter, which `mib_cdc.sv` never overrides) bypasses
+  `pmi_fifo_dc_fwft_v1_0`/`pmi_fifo_dc` entirely whenever `VERILATE=1'b0` is
+  not forced, substituting the single-clock `fwft_sc_fifo` (which
+  unconditionally instantiates `generic_fifo_sc_a`, already covered by its
+  own harness) for *any* simulation run with `VERILATE=1` — the same
+  convention this whole session's Verilator/XSIM parity harnesses rely on.
+  This means the real dual-clock `pmi_fifo_dc` macro (and, for Xilinx, the
+  real `xpm_fifo_async`/`xpm_fifo_base` primitive it maps to) is a
+  hardware-synthesis-only path never exercised by either toolchain's
+  logic simulation in this repo's existing flow (confirmed Verilator 4.016
+  cannot even parse the real `xpm_fifo.sv`, same class of limitation as
+  `xpm_memory.sv`).  Building a bit-exact legacy-vs-Xilinx trace-parity
+  harness for it would therefore not be preserving any existing simulated
+  behavior (there is none to preserve) and is out of scope for this port's
+  simulation-parity contract; the existing successful CS12 synthesis and
+  routed implementation (zero errors, see above) is the only functional
+  evidence available for this leaf pending real hardware bring-up.  A scan
+  of the remaining CS12-manifest Q-engine/piston leaves (DMA, ring bus,
+  `vmem_dat_6_5`/`vmem_ctrl_6_5`, and the rest of the piston control/data
+  chain) found no other vendor memory or DSP macros beyond what is already
+  covered; `vmem_dat_6_5.v`'s `n_mem_payload_*`/`q_mem_payload_*` arrays are
+  small (16-deep) plain register arrays with no macro dependency, and the
+  actual vector-memory RAM leaf is `memory_slice` (already covered).
 
 ## Memory policy
 

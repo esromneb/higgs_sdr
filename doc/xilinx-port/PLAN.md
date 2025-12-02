@@ -14,17 +14,35 @@ initial CS12 source closure.
 
 1. **Record the CS12 closure.** Done in `CS12_HDL_MANIFEST.md`; retain the
    existing Lattice list as the baseline and turn it into a Vivado source list.
-2. **Port leaf memories first.** Start with Q-engine `scalar_memory`, then
-   Q-engine `dpram`/`elastic_dpram`, RISC-V `generic_dpram`, and FIFO storage.
-   Use inferred block RAM with explicit read-during-write tests.  Do not
-   instantiate XPM memories until inference fails timing or resource goals.
-3. **Port leaf arithmetic and clock/reset primitives.** Replace the Lattice
-   PLL and any vendor DSP/IP only after their portable behavior is covered.
+2. **Port leaf memories first.** Done: `scalar_memory`, `memory_slice`
+   (Q-engine vector memory), `generic_dpram`, and `generic_fifo_sc_a` (the
+   FIFO storage leaves actually reachable from the CS12 manifest — Q-engine's
+   own `dpram.sv`/`elastic_dpram.sv` and RISC-V's `dp_ram/generic_dpram.v`
+   were confirmed unreachable from any CS12-manifest file and are out of
+   scope) all have directed-plus-fuzz simulator evidence.  Inferred block RAM
+   is used throughout; XPM memory is only used where `memory_slice_xilinx.v`
+   requires it.
+3. **Port leaf arithmetic and clock/reset primitives.** Done for the
+   dataflow-reachable leaves: `muladdsub` and
+   `alu54b_wrapper`/`alu54b_wrapper_xilinx` have directed-plus-fuzz
+   simulator evidence.  The Lattice PLL (`sys_pll`) and the dual-clock FIFO
+   macro (`pmi_fifo_dc`, reached via `mib_cdc.sv`) are replaced for the
+   Xilinx build but are hardware-synthesis-only paths never exercised by
+   either toolchain's logic simulation (`mib_cdc.sv`'s own `VERILATE`
+   generate branch bypasses `pmi_fifo_dc_fwft_v1_0`/`pmi_fifo_dc` entirely
+   for any simulated run, substituting the already-covered
+   `fwft_sc_fifo`/`generic_fifo_sc_a`); see `NOTES.md` for the full
+   investigation.  No further simulator-parity work is planned for
+   `sys_pll`/`pmi_fifo_dc` pending real hardware bring-up.
 4. **Assemble Q-engine bottom-up.** Verify each leaf, then DMA, ring bus,
    piston/vector memory, and `q_engine`.
-   Before porting `vmem_dat_6_5_1_0`, inspect `fixcrossbar_higgs`; it may be
-   necessary to take that complete, known-good commit rather than recreate its
-   crossbar/memory changes piecemeal.
+   `fixcrossbar_higgs` (`42eeee2`) was inspected and found to still
+   instantiate `memory_slice`; it does not solve the unsupported RAM
+   template and was intentionally not imported.  A scan of the remaining
+   piston/DMA/ring-bus leaves in the manifest found no other vendor memory
+   or DSP macros needing dedicated parity harnesses; the next step is
+   functional (not per-leaf-macro) verification: assembling and running the
+   existing Q-engine-level test vectors against both toolchains.
 5. **Assemble VexRiscv bottom-up.** Verify generated `XbbRiscv`, its program
    memory, and `vex_machine_top` against the existing CS12 interfaces.
 6. **Create the CS12 Vivado target.** Done for synthesis and routed
