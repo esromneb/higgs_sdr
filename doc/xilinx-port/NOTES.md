@@ -39,8 +39,15 @@
   bitstream, programming, and hardware bring-up are not complete.
 - Vivado reports duplicate declarations in the existing
   `generic_fifo_sc_a.v` during source processing, but completed synthesis and
-  implementation with zero errors.  Treat these diagnostics as a follow-up
-  review item before release rather than evidence of FIFO functional parity.
+  implementation with zero errors.  This is no longer just a follow-up
+  review item: building the `generic_fifo_sc_a` parity harness (see below)
+  confirmed XSIM's `xvlog` frontend treats the same duplicate declarations
+  as a hard `ERROR: [VRFC 10-9364]` that drops the whole module, i.e. it
+  actually blocks simulation (not merely synthesis diagnostics). The
+  harness works around this via a build-only, sed-patched copy that strips
+  exactly the four duplicate lines; the committed legacy source is
+  unmodified, and this same patch should be applied to any future
+  simulation build of `generic_fifo_sc_a.v` on XSIM.
 - The datapath portability change is committed in the `libs/datapath`
   submodule (`973676c`).  `HIGGS_FPGA_XILINX` selects behavioral
   `muladdsub` and `alu54b_wrapper_xilinx`, allowing Vivado to map the design
@@ -114,6 +121,31 @@
   instead); this harness closes the previously-flagged parity-evidence gap
   for it regardless, since it remains part of the committed
   `CS12_HDL_MANIFEST.md` closure.
+- `generic_dpram` and `generic_fifo_sc_a`
+  (`libs/ip-library/fwft_fifos/sc_fifo/hdl/`, used via `fwft_sc_fifo` /
+  `pmi_fifo_sc_fwft_v1_0` in the committed CS12 manifest) now have
+  directed-plus-fuzz parity harnesses at
+  `fpgas/common/xilinx/sim/generic_dpram/` and
+  `fpgas/common/xilinx/sim/generic_fifo_sc_a/`.  Neither has a separate
+  Xilinx implementation, so both are tested by self-checking against an
+  independent shadow model on both simulators (same approach as
+  `muladdsub`).  `generic_dpram`'s `dout` is an asynchronous, continuous
+  read of `mem[read_addr]` (only the address is registered), so writing to
+  the currently-latched read address changes `dout` immediately with no
+  extra pipeline delay — directly exercised by a dedicated directed case.
+  `generic_fifo_sc_a`'s shadow model discovered that its
+  `fillcount`/`afull`/`afull_n`/`o_afull_n_d` register block responds only
+  to `rst`, never to `clr`, unlike every other status register in the
+  module (`wp`/`rp`/`gb`/`gb2`/`cnt`/`full_r`/`empty_r`/`full_n_r`/
+  `empty_n_r`, which all respond to both); this asymmetry is faithfully
+  reproduced rather than corrected.  Building this harness also surfaced a
+  general Verilator caveat worth recording: `--top-module X` elaborates `X`
+  with its own RTL-declared default parameters, silently ignoring any
+  `#(...)` override written in a non-root SV testbench — the fix is
+  explicit `-Gname=value` command-line flags at the Verilator invocation,
+  and elaborated parameter values should always be spot-checked (e.g. via a
+  `%Warning-WIDTH` log line) whenever this pattern is used with
+  non-default parameters.
 
 ## Memory policy
 
