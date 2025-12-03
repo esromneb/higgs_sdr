@@ -41,3 +41,8 @@ traces. The direct parent boundary at
 DMA-in and DMA-out over the production CSR bus, then verifies a deterministic
 64-word backpressured stream loop through piston/VMEM, demapper, and slicer
 with matching XSIM/Verilator traces.
+
+Platform-level XSIM parity now also includes `sim/verilator/test_nco/`.
+Its CS20 firmware configures the production NCO and DMA engines, and both
+simulators independently verify and then exactly compare the complete
+32,768-sample complex waveform.

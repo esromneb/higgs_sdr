@@ -117,6 +117,12 @@ initial CS12 source closure.
    bit-verified reimplementation of glibc's `rand()`/`srand()` in the SV
    testbench, since it is a randomized-stimulus regression. See each
    test's `README.md` for full detail.
+10. **Port the NCO platform regression to XSIM.** Done:
+    `sim/verilator/test_nco` now runs the CS20 firmware-controlled path from
+    NCO CSR programming through DMA2, piston/VMEM, and DMA1. Verilator and
+    XSIM independently check the 32,768-sample count, exact 4,096-sample
+    periodicity, phase anchors, and a fixed FNV-1a digest, then compare every
+    emitted 32-bit sample exactly.
 
 ## Milestone rule
 

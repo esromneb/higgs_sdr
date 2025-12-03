@@ -163,6 +163,13 @@ Q_ENGINE_REG_INIT_SOURCES=\
 FIFO_REG_INIT_SOURCES=\
 	$(IP_LIBRARY_REPO)/fwft_fifos/sc_fifo/hdl/fwft_sc_fifo.v
 
+# generic_fifo_sc_a.v's two simulation-only assertions are evaluated even
+# while its active-low reset is asserted. Verilator's 2-state initialization
+# masks that issue, while XSIM correctly treats the pre-reset full/empty
+# outputs as X and reports false violations on the first clock edge. The
+# generated copy gates both assertions with `rst`, preserving every real
+# post-reset check.
+
 # XbbRiscv.v (the RISC-V CPU core itself, SpinalHDL-generated) has the
 # same bug pattern at a much larger scale (~500 bare `reg`s): e.g.
 # slicer.v's r_config_payload_slice is fed directly from this core's
@@ -252,6 +259,8 @@ XSIM_INCLUDES=$(patsubst -I%,-i %,$(VER_INCLUDE_DIRS))
 XSIM_TB=tb_higgs_top_xsim.sv
 XSIM_TOP=tb_higgs_top_xsim
 
+XSIM_COMPARE_COMMAND ?= python3 $(HIGGS_ROOT)/sim/verilator/compare_ringbus.py verilator_run.log xsim_run.log
+
 .PHONY: xsim_gen xsim_compile xsim_elab xsim_run xsim xsim_clean xsim_compare verilator_run_log
 
 xsim_gen:
@@ -271,6 +280,8 @@ open('$(XSIM_GEN_DIR)/.nco_fwdref.v', 'w').write(src)"
 	    -e '/^   reg                    empty_r;$$/d' \
 	    -e '/^   wire                   full_n, empty_n;$$/d' \
 	    -e '/^   reg                    full_n_r, empty_n_r;$$/d' \
+	    -e '/^      assert (!(full && we)) else$$/i\      if (rst)' \
+	    -e '/^      assert (!(empty && re)) else$$/i\      if (rst)' \
 	    -e '/^`timescale 1ns \/ 100ps$$/d' \
 	    $(IP_LIBRARY_REPO)/fwft_fifos/sc_fifo/hdl/generic_fifo_sc_a.v > $(XSIM_GEN_DIR)/generic_fifo_sc_a.v
 	sed -e '/^`timescale 1 ns \/ 1 ps$$/d' \
@@ -341,8 +352,16 @@ xsim_clean:
 # above); this just also captures its stdout to a log (rather than
 # re-defining the shared `run` target) and diffs both simulators' ring-bus
 # output streams.
-verilator_run_log: compile
+# Build the reference simulator from a clean checkout as well as from an
+# already-built test directory. These recursive steps are deliberately
+# ordered: compile needs obj_dir from verilate, and verilator_parse_syms needs
+# the generated model hierarchy.
+verilator_run_log:
+	$(MAKE) compilehex
+	$(MAKE) verilate
+	$(MAKE) verilator_parse_syms
+	$(MAKE) compile
 	./obj_dir/$(VER_BINARY) | tee verilator_run.log
 
 xsim_compare: verilator_run_log xsim_run
-	python3 $(HIGGS_ROOT)/sim/verilator/compare_ringbus.py verilator_run.log xsim_run.log
+	$(XSIM_COMPARE_COMMAND)

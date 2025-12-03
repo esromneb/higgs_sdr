@@ -573,3 +573,30 @@ test-specific notes.
   DMA-in, piston/VMEM, DMA-out, demapper, and slicer. It does not newly claim
   ring-bus traffic, NCO operation, or instruction-driven vector/arithmetic
   behavior; those remain covered by the existing focused and platform tests.
+
+## 2025-12-02: NCO platform regression ported to XSIM
+
+- Audited all platform `NCO_*` references. `sim/verilator/test_nco` is the
+  only checked-in platform regression that actually schedules the NCO; the
+  other matches are dormant helper copies. Its existing C++ driver merely
+  dumped `cs20_out.hex`, while `nco_test.py` plotted data but made no
+  assertions, so a successful process exit was not evidence of correctness.
+- Made the existing Verilator test genuinely self-checking and added a
+  matching `tb_higgs_top_xsim.sv`. Both independently require 32,768 samples,
+  exact repetition of the 4,096-sample waveform over eight periods, exact
+  phase/quadrant anchors, and FNV-1a digest `0x6248f48c3198f9f5`.
+- The covered production platform path is
+  `CS20 RISC-V CSR -> NCO -> DMA2 -> piston/VMEM -> DMA1 -> CS20 output`.
+  The firmware uses start angle `0xbfffffff`, delta `1<<20`, and length
+  32,768. This is an exact regression for that configuration, not a claim of
+  exhaustive frequency/phase coverage.
+- `PATH=/opt/amd/2025.2/Vivado/bin:$PATH make xsim_compare` passes with
+  Verilator 4.016 and XSIM 2025.2. Both self-checks pass and
+  `compare_nco.py` confirms all 32,768 output words match exactly. A
+  deliberately corrupted first sample is rejected.
+- XSIM initially emitted two false FIFO assertion errors on the first clock
+  while active-low reset was asserted. The legacy simulation-only assertions
+  in `generic_fifo_sc_a.v` lacked reset guards; Verilator's two-state startup
+  masked the problem. `xsim_common.mk` now adds `if (rst)` only to the
+  generated XSIM copy, retaining every post-reset FIFO assertion and leaving
+  production RTL unchanged. A clean rerun contains no SVA errors.

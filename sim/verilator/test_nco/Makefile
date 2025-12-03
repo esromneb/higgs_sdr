@@ -48,7 +48,11 @@ TB_USE_CS30=1
 # CS30_NO_RISCV=1
 
 
+HIGGS_TEST_DIR=.
 include $(HIGGS_ROOT)/scripts/make_include/tb_common.mk
+
+XSIM_COMPARE_COMMAND=python3 compare_nco.py verilator_run.log cs20_out.hex xsim_run.log xsim_nco.hex
+include $(HIGGS_ROOT)/scripts/make_include/xsim_common.mk
 
 
 show:

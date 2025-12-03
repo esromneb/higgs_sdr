@@ -15,3 +15,17 @@ cs10_out.hex
 cs20_out.hex
 t1.txt
 
+# XSIM build products and logs.
+/xsim_gen/
+/xsim.dir/
+*.wdb
+*.jou
+*.pb
+*.backup.jou
+*.backup.log
+xsim.log
+xelab.log
+xvlog.log
+xsim_run.log
+verilator_run.log
+xsim_nco.hex

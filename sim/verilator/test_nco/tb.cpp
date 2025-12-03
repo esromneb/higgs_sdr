@@ -11,6 +11,7 @@
 #include <sys/stat.h>  // mkdir
 
 #include <fstream>
+#include <stdint.h>
 
 // Include model header, generated from Verilating "top.v"
 #include "Vtb_higgs_top.h"
@@ -116,7 +117,49 @@ int main(int argc, char** argv, char** env) {
   // file_dump_vec(t->outs[1].data, "cs10_out.hex");
   file_dump_vec(t->outs["cs20out"]->data, "cs20_out.hex");
 
-  // cout << "All Tests Passed" << endl;
+  const vector<uint32_t>& samples = t->outs["cs20out"]->data;
+  const size_t expected_count = 32768;
+  const size_t expected_period = 4096;
+  const uint64_t expected_fnv = 0x6248f48c3198f9f5ULL;
+  uint64_t fnv = 0xcbf29ce484222325ULL;
+  bool pass = true;
+
+  for (size_t i = 0; i < samples.size(); i++) {
+    uint32_t word = samples[i];
+    for (unsigned shift = 0; shift < 32; shift += 8) {
+      fnv ^= (word >> shift) & 0xff;
+      fnv *= 0x100000001b3ULL;
+    }
+    if (i >= expected_period && word != samples[i % expected_period]) {
+      cerr << "FAIL: NCO period mismatch at sample " << i << endl;
+      pass = false;
+      break;
+    }
+  }
+
+  if (samples.size() != expected_count) {
+    cerr << "FAIL: NCO sample count " << samples.size()
+         << " != " << expected_count << endl;
+    pass = false;
+  }
+  if (fnv != expected_fnv) {
+    cerr << "FAIL: NCO FNV-1a 0x" << hex << fnv
+         << " != 0x" << expected_fnv << dec << endl;
+    pass = false;
+  }
+  if (samples.size() == expected_count &&
+      (samples[0] != 0x80000041 ||
+       samples[1024] != 0xffe67fff ||
+       samples[2048] != 0x7ffffffc ||
+       samples[3072] != 0x00768000 ||
+       samples[4095] != 0x8000fff3)) {
+    cerr << "FAIL: NCO phase-quadrant anchor mismatch" << endl;
+    pass = false;
+  }
+
+  if (pass) {
+    cout << "All Tests Passed" << endl;
+  }
 
 
   // Final model cleanup
@@ -130,5 +173,5 @@ int main(int argc, char** argv, char** env) {
   delete top; top = NULL;
   //print_vector(output_vector);
   // Fin
-  exit(0);
+  exit(pass ? 0 : 1);
 }
