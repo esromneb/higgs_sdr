@@ -434,3 +434,33 @@ test-specific notes.
   235-item sequence; `test_cs20_dma`: 0 items (both self-checks still
   pass); `test_dma_fft`: `[0xdead, 0x8000, 0x8400, 0x8800]`, reproduced
   across two independent clean `xsim_compare` runs (determinism check).
+
+## 2025-12-02: `fwft_sc_fifo` parent-level directed/fuzz parity
+
+- Added `fpgas/common/xilinx/sim/fwft_sc_fifo/`, the first parent-level
+  harness above the already-proven `generic_fifo_sc_a` and `generic_dpram`
+  leaves.  This is the portable single-clock FIFO selected by the
+  `VERILATE_DEF` branch of `pmi_fifo_sc_fwft_v1_0` and used directly by
+  CS12-reachable `vex_machine_top` and `dma_out` paths.
+- Both the XSIM testbench and Verilator cycle driver maintain independent
+  transaction scoreboards.  They check every presented and consumed payload,
+  first-word fall-through, stable output while backpressured, burst ordering
+  with valid gaps, simultaneous reads and writes, reset with buffered
+  transactions in flight, and a deterministic 5,000-cycle fuzz sequence
+  using seed `0x6d2b79f5`.  Writes while `full` are excluded because the
+  underlying legacy FIFO explicitly declares that transaction undefined.
+- Directed filling characterized the wrapper's externally observable
+  capacity as `DEPTH + 2`: the backing FIFO retains `DEPTH` entries while
+  the FWFT output and holding registers each retain one prefetched word.
+  The harness asserts this boundary for `DEPTH=16` and verifies complete
+  ordered drain afterward.
+- `make clean compare` passed with Verilator 4.016 and XSIM/Vivado 2025.2;
+  the generated traces matched exactly under the shared
+  `compare_traces.py`.  A deliberately corrupted cycle field was rejected
+  by the comparator, confirming the comparison target fails on a real
+  mismatch.
+- As in the `generic_fifo_sc_a` leaf harness, XSIM uses a build-only copy
+  that removes the legacy module's redundant declarations.  This parent
+  harness also removes its lone `` `timescale`` directive so all three RTL
+  modules use a consistent implicit timescale; no production source is
+  modified.

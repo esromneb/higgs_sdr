@@ -40,9 +40,14 @@ initial CS12 source closure.
    instantiate `memory_slice`; it does not solve the unsupported RAM
    template and was intentionally not imported.  A scan of the remaining
    piston/DMA/ring-bus leaves in the manifest found no other vendor memory
-   or DSP macros needing dedicated parity harnesses; the next step is
-   functional (not per-leaf-macro) verification: assembling and running the
-   existing Q-engine-level test vectors against both toolchains.
+   or DSP macros needing dedicated parity harnesses.  Parent-level
+   verification has started with `fwft_sc_fifo`, the first wrapper above the
+   already-covered `generic_fifo_sc_a`/`generic_dpram` leaves.  Its
+   transaction-scoreboard harness proves first-word fall-through, payload
+   ordering, output stability under backpressure, simultaneous traffic,
+   effective capacity, reset in flight, and deterministic fuzz under both
+   simulators.  Continue upward with its Q-engine consumers, beginning with
+   `dma_out`, then ring bus, piston/vector-memory paths, and `q_engine`.
 5. **Assemble VexRiscv bottom-up.** Done: `XbbRiscv.v` (the generated
    VexRiscv wrapper) and its surrounding files were inspected and contain no
    vendor-specific memory or DSP macros — pure portable Verilog — so no
@@ -115,8 +120,10 @@ Functional parity is now proven for `scalar_memory`, `memory_slice`
 (currently unused in the CS12 dataflow, but part of the committed manifest
 closure), and `generic_dpram`/`generic_fifo_sc_a` (the FIFO storage leaves
 used via `fwft_sc_fifo`/`pmi_fifo_sc_fwft_v1_0`), each with
-directed-plus-fuzz simulator evidence. `XbbRiscv` (generated VexRiscv) needed
-no dedicated leaf harness (portable Verilog, no vendor macros). System-level
+directed-plus-fuzz simulator evidence. The first parent-level gate is also
+complete for `fwft_sc_fifo`, with an independent transaction scoreboard and
+cross-simulator trace comparison. `XbbRiscv` (generated VexRiscv) needed no
+dedicated leaf harness (portable Verilog, no vendor macros). System-level
 integration is now proven at the `vex_machine_top` level: a real, compiled
 RISC-V program runs identically on both simulators through the entire
 assembled Q-engine/VexRiscv design (`fpgas/common/xilinx/sim/vex_machine_top/`).

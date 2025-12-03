@@ -27,4 +27,7 @@ RAMs, the contract is functional behavior at the transaction interface;
 same-address dual-port collisions are deliberately excluded unless the
 production architecture defines them.  `NOTES.md` records evidence,
 deviations, and unresolved signoff work; update it at every synthesis,
-routing, test, or hardware milestone.
+routing, test, or hardware milestone.  Parent-level verification has begun
+at `fpgas/common/xilinx/sim/fwft_sc_fifo/`, which composes the proven
+single-clock FIFO storage leaves and checks their external transaction
+contract with an independent scoreboard.
