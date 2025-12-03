@@ -96,4 +96,13 @@ exact list of patched files and the mechanism):
    fixed testbench is required to get an *exact* item-for-item match
    against Verilator, which was this porting effort's actual goal. Fixed
    by changing the initializer to `= 1`.
+5. **`i_rx_ready_eth` tie-off bug** (found while porting `test_cs20_dma`,
+   a later, higher-data-volume test; retroactively fixed here too since
+   this test shares the same testbench pattern): `i_rx_ready_eth` was
+   tied to constant `0` instead of `1` (`higgs_helper.hpp`'s reference
+   `eth_rx` port always drives `control_ready=1`). Harmless for this
+   test's smaller data volumes (never filled the affected FIFO enough to
+   stall), but fixed for consistency and to avoid latent risk in any
+   future stimulus change. See `doc/xilinx-port/NOTES.md` and
+   `test_cs20_dma/README.md` for the full derivation.
 

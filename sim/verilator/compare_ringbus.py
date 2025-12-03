@@ -4,11 +4,16 @@ run's stdout against an XSIM run's stdout.
 
 Both simulators print one ring-bus item per line as ``0x<hex>`` (no
 zero-padding -- Verilator's HEX_STRING() macro and the SV testbench's
-``%0h`` format both produce this), interleaved with other log lines that
-are ignored here. Exits non-zero (and prints a diagnostic) on any
-mismatch: different item counts, any differing item, or either stream's
-own start/end self-check failing (``first==0xdeadbeef``,
-``last==0xf``) -- the same two checks tb.cpp itself performs.
+``%0h`` format both produce this, and higgs_helper.hpp's zero-padded
+``0x%08h`` style also matches via this same regex), interleaved with
+other log lines that are ignored here. Exits non-zero (and prints a
+diagnostic) on any mismatch: different item counts, any differing item,
+or either log missing the "All Tests Passed" line that every test's own
+tb.cpp/tb_higgs_top_xsim.sv self-check prints on success (each test
+defines its own pass/fail criteria internally -- e.g. exact item count,
+specific first/last values -- this script only confirms both simulators
+agree with each other AND both independently self-reported success; it
+does not hardcode any test-specific expected values).
 
 Usage: compare_ringbus.py <verilator_log> <xsim_log>
 """
@@ -16,6 +21,7 @@ import re
 import sys
 
 HEX_RE = re.compile(r'^0x([0-9a-fA-F]+)$')
+PASS_STRING = "All Tests Passed"
 
 
 def extract_items(path):
@@ -28,18 +34,12 @@ def extract_items(path):
     return items
 
 
-def check_self(name, items):
-    ok = True
-    if not items:
-        print(f"FAIL: {name}: no ring-bus items captured")
-        return False
-    if items[0] != 0xdeadbeef:
-        print(f"FAIL: {name}: first item 0x{items[0]:x} != 0xdeadbeef")
-        ok = False
-    if items[-1] != 0xf:
-        print(f"FAIL: {name}: last item 0x{items[-1]:x} != 0xf")
-        ok = False
-    return ok
+def check_self(name, path):
+    with open(path) as f:
+        if PASS_STRING in f.read():
+            return True
+    print(f"FAIL: {name}: missing \"{PASS_STRING}\" (own self-check failed)")
+    return False
 
 
 def main():
@@ -47,16 +47,17 @@ def main():
         print(f"usage: {sys.argv[0]} <verilator_log> <xsim_log>")
         return 2
 
-    ver_items = extract_items(sys.argv[1])
-    xsim_items = extract_items(sys.argv[2])
+    ver_log, xsim_log = sys.argv[1], sys.argv[2]
+    ver_items = extract_items(ver_log)
+    xsim_items = extract_items(xsim_log)
 
     print(f"Verilator: {len(ver_items)} items: "
           f"[{', '.join('0x%x' % i for i in ver_items)}]")
     print(f"XSIM:      {len(xsim_items)} items: "
           f"[{', '.join('0x%x' % i for i in xsim_items)}]")
 
-    ok = check_self("Verilator", ver_items)
-    ok = check_self("XSIM", xsim_items) and ok
+    ok = check_self("Verilator", ver_log)
+    ok = check_self("XSIM", xsim_log) and ok
 
     if ver_items != xsim_items:
         print("FAIL: Verilator and XSIM ring-bus streams differ")

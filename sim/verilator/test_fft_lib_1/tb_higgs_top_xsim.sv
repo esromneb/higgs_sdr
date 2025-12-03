@@ -108,7 +108,7 @@ module tb_higgs_top_xsim;
 
   wire [31:0]  o_rx_data_eth;
   wire         o_rx_valid_eth;
-  logic        i_rx_ready_eth       = 0;
+  logic        i_rx_ready_eth       = 1; // tb always asserts ready (matches Verilator control_ready=1, random_ready=false)
 
   wire         DAC_CTRL_SDIO;
   wire         DAC_CTRL_SDENN;
