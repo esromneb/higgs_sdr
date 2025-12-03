@@ -1,2 +1,15 @@
 wave_dump.vcd
 /obj_dir
+
+/xsim_gen/
+/xsim.dir/
+*.wdb
+*.jou
+*.pb
+*.backup.jou
+*.backup.log
+xsim.log
+xelab.log
+xvlog.log
+xsim_run.log
+verilator_run.log

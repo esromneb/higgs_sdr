@@ -63,3 +63,5 @@ EXTRA_CPP_FILES=$(RISCV_BASEBAND_REPO)/c/inc/feedback_bus.c
 # Required to set this before including this file
 HIGGS_TEST_DIR=.
 include $(HIGGS_ROOT)/scripts/make_include/tb_common.mk
+
+include $(HIGGS_ROOT)/scripts/make_include/xsim_common.mk

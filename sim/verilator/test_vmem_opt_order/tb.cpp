@@ -45,12 +45,12 @@ int main(int argc, char** argv, char** env) {
 
   t->print_ringbus_out();
 
-  assert(t->outs["ringbusout"]->data.size() == 4 &&
-         "Got wrong number of DMA items");  
-  assert(t->outs["ringbusout"]->data[0] == 0xdeadbeef &&
-         "Test did not start");  
-  assert(t->outs["ringbusout"]->data[3] == 0xF &&
-         "Some tests failed, expected 0xF");  
+  const auto& ring = t->outs["ringbusout"]->data;
+  assert(ring.size() == 4 && "Got wrong number of DMA items");
+  assert(ring[0] == 0xdeadbeef && "Test did not start");
+  assert(ring[1] == 0x00040400 && "Unexpected first alignment result");
+  assert(ring[2] == 0x00040400 && "Unexpected second alignment result");
+  assert(ring[3] == 0x0000000f && "Some tests failed, expected 0xF");
 
   std::cout << "All Tests Passed\n";
 
@@ -65,4 +65,3 @@ int main(int argc, char** argv, char** env) {
 
   exit(0);
 }
-

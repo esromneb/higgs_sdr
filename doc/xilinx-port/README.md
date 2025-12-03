@@ -47,8 +47,9 @@ Its CS20 firmware configures the production NCO and DMA engines, and both
 simulators independently verify and then exactly compare the complete
 32,768-sample complex waveform.
 
-Three more active Jenkins regressions now run under XSIM:
-`sim/verilator/test_vmem_0/`, `test_hw_mul/`, and `test_fill_lib/`.
-Together they add exact VMEM stream ordering, generated RISC-V hardware
-multiply/divide results and latency limits, and direct 16-bank vector-memory
-fill verification.
+Six more active Jenkins regressions now run under XSIM:
+`sim/verilator/test_vmem_0/`, `test_vmem_2/`, `test_vmem_3/`,
+`test_vmem_opt_order/`, `test_hw_mul/`, and `test_fill_lib/`. Together they
+add exact VMEM stream ordering, compile-time VMEM/MIF content checks,
+16-word section-alignment checks, generated RISC-V hardware multiply/divide
+results and latency limits, and direct 16-bank vector-memory fill verification.

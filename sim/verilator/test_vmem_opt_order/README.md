@@ -7,3 +7,20 @@ This test makes sure that VMEM_SECTION will always align to a 16 word boundary.
 
 # Jenkins
 * Under Jenkins Test
+
+# XSIM parity
+
+Both simulator-local checks require the exact ring-bus sequence:
+
+```text
+0xdeadbeef
+0x00040400
+0x00040400
+0x0000000f
+```
+
+Run Verilator and XSIM and compare their complete streams with:
+
+```sh
+PATH=/opt/amd/2025.2/Vivado/bin:$PATH make xsim_compare
+```

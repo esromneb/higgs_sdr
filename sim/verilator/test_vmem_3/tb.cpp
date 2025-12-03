@@ -50,6 +50,7 @@ int main(int argc, char** argv, char** env) {
   int us;
   us = 5000;
 
+  bool done = false;
   for(unsigned int i = 0; i < us; i++) {
     t->tick(500); // tick 1 us
 
@@ -65,17 +66,19 @@ int main(int argc, char** argv, char** env) {
       cs20_pc == pc_done[2]
       ) {
       std::cout << "Breaking early at time " << main_time << "\n";
+      done = true;
       break;
     }
   }
 
   t->print_ringbus_out();
 
-  assert(t->outs["ringbusout"]->data[0] == 0xdeadbeef && "Test did not start");  
-  assert(t->\
-         outs["ringbusout"]->\
-         data[t->outs["ringbusout"]->data.size()-1] == 0x01 &&
-         "One or more tests didn't pass");
+  const auto& ring = t->outs["ringbusout"]->data;
+  assert(done && "Firmware did not reach a completion PC");
+  assert(ring.size() == 3 && "Got wrong number of ring-bus items");
+  assert(ring[0] == 0xdeadbeef && "Test did not start");
+  assert(ring[1] == 0x00000000 && "VMEM contents did not match");
+  assert(ring[2] == 0x00000001 && "One or more tests didn't pass");
 
   std::cout << "All Tests Passed\n";
 

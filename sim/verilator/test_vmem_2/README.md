@@ -1,11 +1,17 @@
-# Test
-Seems like `test_vmem_1` which is more comprehensive than this `test_vmem_2` (go figure), seems like it is covered, aka this test might be redundant, unsure.
+# VMEM compile-time data regression
 
-# Notes
-* this test unusually uses CS01_QENGINE_LITE
+This active Jenkins regression boots CS20 firmware and checks three
+compile-time VMEM data cases through the production Q-engine/piston path.
 
-# FPGAS
-* just cs30
+Both simulator-local checks require exactly the order-independent set:
 
-# Jenkins
-* Under Jenkins Test
+- `0x00000e0a`
+- `0x00000e1a`
+- `0x00000e2a`
+
+The shared comparator additionally requires the complete emitted ring-bus
+stream to match exactly between Verilator and XSIM.
+
+```sh
+PATH=/opt/amd/2025.2/Vivado/bin:$PATH make xsim_compare
+```

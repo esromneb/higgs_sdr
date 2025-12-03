@@ -49,6 +49,8 @@ int main(int argc, char** argv, char** env) {
 
   t->tick(120*500);
 
+  t->print_ringbus_out();
+
   std::vector<uint32_t>  got = std::vector<uint32_t>(
                                     t->outs["ringbusout"]->data.begin(),
                                     t->outs["ringbusout"]->data.end());
@@ -91,4 +93,3 @@ int main(int argc, char** argv, char** env) {
 
   exit(0);
 }
-

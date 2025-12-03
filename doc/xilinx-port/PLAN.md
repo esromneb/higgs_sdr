@@ -129,6 +129,11 @@ initial CS12 source closure.
     ordered VMEM counter stream, hardware multiply/divide results and latency
     limits, and firmware-driven 16-bank vector fill contents. Each now has an
     independent XSIM self-check and exact Verilator/XSIM ring-bus comparison.
+12. **Expand Jenkins VMEM parity.** Done for `test_vmem_2`, `test_vmem_3`,
+    and `test_vmem_opt_order`. The tests now independently verify the complete
+    compile-time VMEM result set, generated MIF contents plus firmware
+    completion, and 16-word `VMEM_SECTION` alignment. Verilator and XSIM emit
+    identical complete ring-bus streams in all three tests.
 
 ## Milestone rule
 

@@ -194,11 +194,10 @@ REG_INIT_SOURCES=$(Q_ENGINE_REG_INIT_SOURCES) $(FIFO_REG_INIT_SOURCES) $(RISCV_R
 # strict IEEE1800 LRM, unpacked-array replication requires the `` '{ }``
 # assignment-pattern form (`` '{N{val}}``), which xvlog enforces. Purely a
 # default-value literal syntax fix (values/widths unchanged).
-# eth_top.sv's own instantiation of core_top overrides
-# MIB_CLK_SRSTS_EXTRA_CLOCKS (an unpacked int array, size
-# NUM_MIB_CLK_SRSTS=1 here) with a bare scalar `1'b0`; xelab's static
-# elaboration rejects this packed-to-unpacked assignment (VRFC 10-395),
-# so it is rewritten to the single-element array-literal form `'{1'b0}`.
+# The FPGA tops override MIB_CLK_SRSTS_EXTRA_CLOCKS (an unpacked int array,
+# size NUM_MIB_CLK_SRSTS=1 here) with a bare scalar `1'b0`; xelab rejects
+# that packed-to-unpacked assignment. The override is identical to the
+# repaired core_top default, so generated copies simply omit it.
 # Interestingly this only surfaces as an elaboration error in some test
 # configurations (not test_fft_lib_1's), likely due to elaboration-order/
 # optimizer differences across designs; the fix is harmless either way.
@@ -291,6 +290,7 @@ open('$(XSIM_GEN_DIR)/.nco_fwdref.v', 'w').write(src)"
 	  | sed -e 's/^\( *\)output *snap_io_uart_txd,/\1output wire        snap_io_uart_txd,/' \
 	        -e 's/^\( *\)input *snap_io_uart_rxd,/\1input  wire        snap_io_uart_rxd,/' \
 	        -e 's/^\( *\)logic \[21:0\] gpio;/\1wire  [21:0] gpio;/' \
+	        -e '/\.MIB_CLK_SRSTS_EXTRA_CLOCKS *(1'"'"'b0),/d' \
 	  > $(XSIM_GEN_DIR)/$${n}_top.sv; \
 	done
 	sed \
@@ -311,7 +311,7 @@ open('$(XSIM_GEN_DIR)/.nco_fwdref.v', 'w').write(src)"
 	  -e '/^   \/\/assign ENET_CTRL_RESETN = 1'"'"'b1;$$/i\
    wire [21:0]  gpio; // build-only hoist (forward reference), see README.md' \
 	  -e '/^   wire \[21:0\]  gpio;$$/d' \
-	  -e "s/\.MIB_CLK_SRSTS_EXTRA_CLOCKS         (1'b0),/.MIB_CLK_SRSTS_EXTRA_CLOCKS         ('{1'b0}),/" \
+	  -e '/\.MIB_CLK_SRSTS_EXTRA_CLOCKS *(1'"'"'b0),/d' \
 	  $(HIGGS_ROOT)/fpgas/grav/eth/hdl/eth_top.sv > $(XSIM_GEN_DIR)/eth_top.sv
 	sed -e "s/= {NUM_SYS_CLK_SRSTS{1'b0}}/= '{NUM_SYS_CLK_SRSTS{1'b0}}/g" \
 	    $(HIGGS_ROOT)/fpgas/common/modules/core_top.sv > $(XSIM_GEN_DIR)/core_top.sv
