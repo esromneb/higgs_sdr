@@ -15,7 +15,8 @@ proc prj_src {command path} {
         [string match "*/common/modules/core_top.sv" $path] ||
         [string match "*/common/modules/core_reset.sv" $path] ||
         [string match "*/q-engine/hdl/scalar_memory.v" $path] ||
-        [string match "*/q-engine/piston/hdl/memory_slice.v" $path]} {
+        [string match "*/q-engine/piston/hdl/memory_slice.v" $path] ||
+        [string match "*/q-engine/piston/hdl/vmem_dat_6_5.v" $path]} {
         return
     }
 
@@ -37,13 +38,21 @@ add_files -norecurse $script_dir/hdl/sys_pll.sv
 add_files -norecurse $script_dir/hdl/pmi_fifo_dc.sv
 add_files -norecurse $script_dir/hdl/core_top.sv
 add_files -norecurse $source_root/fpgas/common/xilinx/scalar_memory_xilinx.sv
-add_files -norecurse $source_root/fpgas/common/xilinx/memory_slice_xilinx.v
+add_files -norecurse $source_root/fpgas/common/xilinx/memory_slice_1_1_xilinx.sv
+add_files -norecurse $source_root/libs/d-engine/rtl/elastic-buffer/eb15.sv
+add_files -norecurse $source_root/libs/q-engine/piston/hdl/vmem_dat_6_5_1_1.v
+add_files -norecurse $source_root/libs/q-engine/piston/hdl/vmem_dat_arb_out_spinal_wrapper.v
+add_files -norecurse $source_root/libs/spinal/hw/gen/VmemDatArbOut1_1.v
 
 set_property include_dirs [list \
     "$source_root/fpgas/packages" \
     "$source_root/libs/ip-library/lattice_support/gbit_mac/packages"] \
     [current_fileset]
-set_property verilog_define {HIGGS_FPGA_XILINX} [current_fileset]
+set_property verilog_define {
+    HIGGS_FPGA_XILINX
+    MEMORY_SLICE_1_1
+    VMEM_DAT_ARB_OUT_1_1
+} [current_fileset]
 set_property top cs12_top [current_fileset]
 update_compile_order -fileset sources_1
 

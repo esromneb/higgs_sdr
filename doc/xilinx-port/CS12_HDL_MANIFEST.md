@@ -119,13 +119,14 @@ Lattice IP with Xilinx-specific wrappers; additions must be recorded here.
 the left column and adds the corresponding Xilinx implementation in the right
 column:
 
-| Lattice source | Xilinx implementation |
-| --- | --- |
-| `fpgas/common/ip/lattice/sys_pll/sys_pll.v` | `fpgas/cs/cs12/build/vivado/hdl/sys_pll.sv` |
-| `fpgas/common/modules/core_top.sv` | `fpgas/cs/cs12/build/vivado/hdl/core_top.sv` |
-| Lattice `pmi_fifo_dc` macro | `fpgas/cs/cs12/build/vivado/hdl/pmi_fifo_dc.sv` |
-| `libs/q-engine/hdl/scalar_memory.v` | `fpgas/common/xilinx/scalar_memory_xilinx.sv` |
-| `libs/q-engine/piston/hdl/memory_slice.v` | `fpgas/common/xilinx/memory_slice_xilinx.v` |
+| Replaced source/primitive | Xilinx implementation | Selection | Consumers | Verification |
+| --- | --- | --- | --- | --- |
+| `fpgas/common/ip/lattice/sys_pll/sys_pll.v` | `fpgas/cs/cs12/build/vivado/hdl/sys_pll.sv` | Excluded/added by `build.tcl` | CS12 `core_top` | Synthesized and routed; hardware pending |
+| `fpgas/common/modules/core_top.sv` | `fpgas/cs/cs12/build/vivado/hdl/core_top.sv` | Excluded/added by `build.tcl` | `cs12_top` | Synthesized and routed; hardware pending |
+| Lattice `pmi_fifo_dc` macro | `fpgas/cs/cs12/build/vivado/hdl/pmi_fifo_dc.sv` | Vivado source overlay | `mib_cdc` | Synthesized and routed; simulation path is bypassed under `VERILATE` |
+| `libs/q-engine/hdl/scalar_memory.v` | `fpgas/common/xilinx/scalar_memory_xilinx.sv` | Excluded/added by `build.tcl` | `q_engine` | Directed/fuzz XSIM and Verilator evidence; synthesized and routed |
+| `libs/q-engine/piston/hdl/memory_slice.v`, via legacy `vmem_dat_6_5.v` | `fpgas/common/xilinx/memory_slice_1_1_xilinx.sv` | Parent replacement below | `vmem_dat_6_5_1_1` | Tagged dual-port XSIM contract test; synthesized and routed |
+| `libs/q-engine/piston/hdl/vmem_dat_6_5.v` | `libs/q-engine/piston/hdl/vmem_dat_6_5_1_1.v`, `vmem_dat_arb_out_spinal_wrapper.v`, generated `libs/spinal/hw/gen/VmemDatArbOut1_1.v`, and `fpgas/common/xilinx/memory_slice_1_1_xilinx.sv` | Legacy parent excluded by `build.tcl`; `piston.v` selects the replacement under `HIGGS_FPGA_XILINX` | `piston`/Q-engine DMA and vector paths | Arbiter XSIM/Verilator trace parity; full parent 512-read XSIM scoreboard; synthesized and routed |
 
 The datapath manifest additionally includes
 `libs/datapath/rtl/alu54b_wrapper_xilinx.sv`; it is selected by

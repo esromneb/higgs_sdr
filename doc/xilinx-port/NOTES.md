@@ -464,3 +464,51 @@ test-specific notes.
   harness also removes its lone `` `timescale`` directive so all three RTL
   modules use a consistent implicit timescale; no production source is
   modified.
+
+## 2025-12-02: valid/ready-correct `vmem_dat_6_5_1_1`
+
+- Imported the existing SpinalHDL VMEM work into `libs/spinal/` and made
+  `VmemDatArbOut1_1.scala` authoritative for the generated
+  `libs/spinal/hw/gen/VmemDatArbOut1_1.v`. SBT 1.10.2, Scala 2.13.14,
+  SpinalHDL 1.11.0, and Java 17 regenerate the RTL with
+  `make -C libs/spinal clean vao`.
+- Corrected the generated arbiter's stream contract. Input `ready` now
+  reports FIFO capacity independently of `valid`; order and data FIFOs pop
+  only on an actual downstream `valid && ready` transfer. The order FIFO's
+  readiness is exposed through `vmem_dat_arb_out_spinal_wrapper.v` and gates
+  read acceptance in `vmem_dat_6_5_1_1`, so every accepted read reserves an
+  ordering slot.
+- `fpgas/common/xilinx/sim/vmem_dat_arb/` drives order reservations, memory
+  returns, and four independently stalled DMA outputs with 512 deterministic
+  transactions. Both simulators self-check against transaction scoreboards;
+  `make clean compare` passes on Verilator 4.016 and XSIM 2025.2 with matching
+  cycle traces.
+- Added `memory_slice_1_1_xilinx.sv`, preserving the two DMA tag bits above
+  the 12-bit RAM address and holding response address/data/valid stable under
+  backpressure. Its focused XSIM test covers writes, reads, tags,
+  backpressure, back-to-back requests, and defined simultaneous accesses on
+  different addresses. Same-address dual-port collisions remain outside the
+  portable contract.
+- `fpgas/common/xilinx/sim/vmem_dat_6_5/` verifies the complete four-DMA,
+  16-bank parent. It initializes through concurrent DMA writes, exercises a
+  16-lane vector write/read with output backpressure, creates DMA bank
+  conflicts and valid gaps, independently stalls all DMA outputs, asserts
+  reset with queued reads, and then checks 512 ordered read responses. XSIM
+  2025.2 passes.
+- `piston.v` selects `vmem_dat_6_5_1_1` only under
+  `HIGGS_FPGA_XILINX`. The CS12 Vivado overlay explicitly excludes
+  `vmem_dat_6_5.v` and adds the replacement parent, wrapper, generated
+  SpinalHDL RTL, `eb15`, and tagged XPM memory slice.
+- Vivado 2025.2 synthesizes the selected hierarchy successfully for
+  `xczu7ev-ffvc1156-2-e`. The log confirms elaboration of
+  `vmem_dat_6_5_1_1`, `VmemDatArbOut1_1`, and `memory_slice_1_1`.
+  Routed implementation also passes: `WNS = +2.186 ns`, `TNS = 0.000 ns`,
+  zero unconstrained internal endpoints, 28,061 CLB LUTs, 72 RAMB36E2, and
+  38 DSP48E2. Board I/O timing remains intentionally incomplete: 37 input
+  and 37 output ports have no external delay constraints.
+- On this host, unmodified Vivado repeatedly completed routing and then
+  crashed in the licensing/WebTalk host probe inside system `libudev`, before
+  writing the checkpoint. Scoping
+  `LD_PRELOAD=/lib/x86_64-linux-gnu/libudev.so.1` to the `vivado` invocation
+  avoided the allocator crash and produced all routed reports/checkpoints.
+  Do not export this workaround globally.

@@ -41,13 +41,18 @@ initial CS12 source closure.
    template and was intentionally not imported.  A scan of the remaining
    piston/DMA/ring-bus leaves in the manifest found no other vendor memory
    or DSP macros needing dedicated parity harnesses.  Parent-level
-   verification has started with `fwft_sc_fifo`, the first wrapper above the
+   verification started with `fwft_sc_fifo`, the first wrapper above the
    already-covered `generic_fifo_sc_a`/`generic_dpram` leaves.  Its
    transaction-scoreboard harness proves first-word fall-through, payload
    ordering, output stability under backpressure, simultaneous traffic,
    effective capacity, reset in flight, and deterministic fuzz under both
-   simulators.  Continue upward with its Q-engine consumers, beginning with
-   `dma_out`, then ring bus, piston/vector-memory paths, and `q_engine`.
+   simulators.  The Xilinx-selected `vmem_dat_6_5_1_1` parent is also
+   integrated and verified: its generated Spinal return arbiter has matching
+   512-transaction XSIM/Verilator traces, its tagged XPM memory slice has a
+   focused XSIM contract test, and the complete four-DMA/16-lane/16-bank
+   parent passes vector write/read checks plus a 512-read DMA scoreboard with
+   bank conflicts, valid gaps, output stalls, and reset in flight. Continue
+   upward with `dma_out`, ring bus, and `q_engine`.
 5. **Assemble VexRiscv bottom-up.** Done: `XbbRiscv.v` (the generated
    VexRiscv wrapper) and its surrounding files were inspected and contain no
    vendor-specific memory or DSP macros — pure portable Verilog — so no
@@ -120,9 +125,10 @@ Functional parity is now proven for `scalar_memory`, `memory_slice`
 (currently unused in the CS12 dataflow, but part of the committed manifest
 closure), and `generic_dpram`/`generic_fifo_sc_a` (the FIFO storage leaves
 used via `fwft_sc_fifo`/`pmi_fifo_sc_fwft_v1_0`), each with
-directed-plus-fuzz simulator evidence. The first parent-level gate is also
-complete for `fwft_sc_fifo`, with an independent transaction scoreboard and
-cross-simulator trace comparison. `XbbRiscv` (generated VexRiscv) needed no
+directed-plus-fuzz simulator evidence. Parent-level gates are complete for `fwft_sc_fifo` and the
+Xilinx-selected `vmem_dat_6_5_1_1`; the latter includes focused memory-slice
+testing, cross-simulator return-arbiter parity, a complete parent scoreboard,
+and a fresh routed CS12 checkpoint. `XbbRiscv` (generated VexRiscv) needed no
 dedicated leaf harness (portable Verilog, no vendor macros). System-level
 integration is now proven at the `vex_machine_top` level: a real, compiled
 RISC-V program runs identically on both simulators through the entire

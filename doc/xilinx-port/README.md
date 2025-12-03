@@ -27,7 +27,10 @@ RAMs, the contract is functional behavior at the transaction interface;
 same-address dual-port collisions are deliberately excluded unless the
 production architecture defines them.  `NOTES.md` records evidence,
 deviations, and unresolved signoff work; update it at every synthesis,
-routing, test, or hardware milestone.  Parent-level verification has begun
-at `fpgas/common/xilinx/sim/fwft_sc_fifo/`, which composes the proven
-single-clock FIFO storage leaves and checks their external transaction
-contract with an independent scoreboard.
+routing, test, or hardware milestone.  Parent-level verification includes
+`fpgas/common/xilinx/sim/fwft_sc_fifo/` and
+`fpgas/common/xilinx/sim/vmem_dat_6_5/`.  The production CS12 overlay selects
+`vmem_dat_6_5_1_1`, its generated SpinalHDL return arbiter, and the tagged
+Xilinx memory slice.  The return arbiter has XSIM/Verilator trace parity, the
+memory slice has a focused XSIM contract test, and the full parent has a
+four-DMA/16-bank transaction scoreboard.

@@ -626,7 +626,11 @@ wire             tvs_ready28;
 wire             ivs_valid28;
 wire             ivs_ready28;
 wire       [3:0] k_ctrl28;
+`ifdef HIGGS_FPGA_XILINX
+vmem_dat_6_5_1_1 #(
+`else
 vmem_dat_6_5 #(
+`endif
     .VMEM_SIZE(NODE28_VMEM_SIZE),
     .VMEM0(NODE28_VMEM0),
     .VMEM1(NODE28_VMEM1),
