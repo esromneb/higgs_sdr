@@ -76,6 +76,26 @@ initial CS12 source closure.
    build-only patch script, `xsim_reg_init_fix.py`), and a UART-RX
    idle-level testbench-stimulus convention that any future SV testbench
    must match. See that test's `README.md` for full detail.
+9. **Port four more `sim/verilator` DMA regressions to XSIM.** Done:
+   `test_eth_dma`, `test_dma_slicer`, `test_cs20_dma`, and `test_dma_fft`
+   each now have their own `tb_higgs_top_xsim.sv`, all confirmed exact
+   ring-bus parity with Verilator. The shared, DUT-config-independent
+   XSIM build logic from `test_fft_lib_1` was factored out into
+   `scripts/make_include/xsim_common.mk` (included by all 5 tests'
+   Makefiles), and `compare_ringbus.py` was generalized to check for a
+   literal `All Tests Passed` self-report from each simulator rather than
+   hardcoding one test's specific first/last-item values. This work
+   surfaced and fixed one more genuine, broadly-applicable XSIM
+   correctness bug: an `` `define EXTRA_RINGBUS`` compile-order/scope
+   issue that silently disabled the CS-tile-to-ETH ring-bus return path
+   for every XSIM test (see `NOTES.md` for the full root-cause
+   derivation); fixed via a global `-d EXTRA_RINGBUS` in
+   `xsim_common.mk`, verified non-breaking against all 4 other tests.
+   `test_dma_fft` additionally needed a fixed PRNG seed
+   (`fixed_seed = 1525241634` in `tb.cpp`) plus a from-scratch,
+   bit-verified reimplementation of glibc's `rand()`/`srand()` in the SV
+   testbench, since it is a randomized-stimulus regression. See each
+   test's `README.md` for full detail.
 
 ## Milestone rule
 
@@ -106,5 +126,12 @@ surfaced and fixed a systemic missing-register-reset (X-propagation)
 issue reusable by any future harness touching Q-engine/piston,
 `fwft_sc_fifo`, or generated VexRiscv, plus a UART-RX testbench-stimulus
 convention finding (see `NOTES.md`).
+Four more real, pre-existing Verilator DMA regressions
+(`test_eth_dma`, `test_dma_slicer`, `test_cs20_dma`, `test_dma_fft`) now
+also have full XSIM parity, sharing `test_fft_lib_1`'s build logic via
+`scripts/make_include/xsim_common.mk`. This surfaced and fixed one more
+genuine XSIM-only correctness bug (an `` `define`` compile-order/scope
+issue disabling the ring-bus's CS-tile-to-ETH return path), reusable by
+any future harness reaching `eth_top.sv`/`q_engine.v` (see `NOTES.md`).
 The full CS12 and CS21 layers still need their planned hardware-level
 evidence (board-constrained bitstream, programming, and bring-up tests).

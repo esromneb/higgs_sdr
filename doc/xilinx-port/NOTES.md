@@ -326,3 +326,111 @@ leaf-harness work above.
   `Ring got out 8 items.`, `[0xdeadbeef, 0x34, 0x6, 0x2, 0x1, 0x0, 0x0,
   0xf]`, and `All Tests Passed`, reproduced across two independent clean
   `xsim_run` invocations (determinism check).
+
+## 2025-12-02: four more `sim/verilator` DMA regressions ported to XSIM
+
+Following `test_fft_lib_1`'s pattern, four more pre-existing, CI-active
+Verilator regressions under `sim/verilator/` were given XSIM parity
+harnesses: `test_eth_dma`, `test_dma_slicer`, `test_cs20_dma`, and
+`test_dma_fft`. Each got its own hand-written `tb_higgs_top_xsim.sv`
+mirroring its `tb.cpp`'s exact reset/stimulus/self-check; see each test's
+`README.md` for its specific expected ring-bus sequence and any
+test-specific notes.
+
+- **Shared build logic extracted.** `test_fft_lib_1`'s ~320-line
+  `xsim_gen`/`xsim_compile`/`xsim_elab`/`xsim_run`/`xsim_compare` Makefile
+  block (all of it DUT-config-independent: same `sim/hdl/tb_higgs_top.sv`,
+  same set of build-only legacy-file patches) was factored out into
+  `scripts/make_include/xsim_common.mk`, included by all 5 tests'
+  Makefiles with one line each. Each test still owns its own
+  `tb_higgs_top_xsim.sv` (the only genuinely test-specific piece) and
+  `README.md`.
+- **`compare_ringbus.py` generalized.** Originally hardcoded
+  `test_fft_lib_1`'s own self-check (`first==0xdeadbeef`,
+  `last==0xf`). Now it only requires both logs to independently contain
+  the literal string `All Tests Passed` (each test's own `tb.cpp`/
+  `tb_higgs_top_xsim.sv` already enforces its own specific pass/fail
+  criteria internally) and that both simulators' captured ring-bus item
+  streams match exactly. This makes the same script reusable, unmodified,
+  across all 5 (and future) XSIM ports.
+- **`EXTRA_RINGBUS` XSIM compile-order bug (genuine correctness fix,
+  applies to all 5 tests).** `fpgas/grav/eth/hdl/eth_top.sv` locally
+  declares `` `define EXTRA_RINGBUS `` immediately before its own
+  `q_engine` instantiation, intending to enable `q_engine.v`'s second
+  ring-bus submodule (`ring_bus_inst_2`, guarded by
+  `` `ifdef EXTRA_RINGBUS``) for that instance. Verilog `` `define`` is a
+  single global preprocessor stream, not instantiation-site-scoped: a
+  module is compiled/elaborated exactly once, so whatever `` `ifdef``
+  state existed when *that file* was analyzed applies uniformly to every
+  instantiation. Because `q_engine.v` is analyzed by `xvlog` before
+  `eth_top.sv` in `XSIM_SOURCES` order (confirmed via `xvlog.log`:
+  `q_engine.v` at line 121, `eth_top.sv` at line 244), `eth_top.sv`'s
+  local `` `define`` was always too late to affect `q_engine.v`'s own
+  guard — XSIM silently never instantiated `ring_bus_inst_2` for *any*
+  q_engine instance, leaving `o_ringbus` permanently floating and
+  `eth_top`'s `HS_EAST_OUT_RB[47]` register (an `always_ff` with no
+  reset) latching `X`/`Z` every cycle. This broke the CS-tile-to-ETH
+  ring-bus return path for every test using it; only `test_dma_fft`
+  actually exercises it (CS11's firmware sends 4 boot-marker ring-bus
+  messages that must transit CS11→CS01→CS02→CS12→CS22→CS21→CS20→ETH),
+  so the other tests never observed it as a failure. Verilator's build
+  already instantiates `ring_bus_inst_2` for every q_engine instance
+  (confirmed via `obj_dir/*.h`/`.cpp` symbols for all 5 parameterized
+  variants, `q_engine__pi30/32/33/34/35`), so XSIM was diverging from
+  Verilator's actual (and evidently intended) behavior, not the reverse.
+  **Fix**: added `-d EXTRA_RINGBUS` to `XSIM_DEFINES` in
+  `xsim_common.mk`, defining it globally on the `xvlog` command line
+  (order-independent), matching Verilator's behavior exactly. Verified
+  safe: `test_eth_dma`, `test_dma_slicer`, and `test_cs20_dma` were
+  rebuilt clean and re-verified to still pass identically (this define
+  only newly activates previously-dead logic; it does not change any
+  other test's observable behavior).
+- **`test_dma_fft`'s randomized stimulus made deterministic across
+  simulators.** This test is a randomized glitch-detection regression
+  (not fixed-stimulus/fixed-output). `tb.cpp`'s default mode reseeds
+  from wall-clock time, which cannot be reproduced across separate
+  Verilator invocations, let alone across simulators. `tb.cpp` was
+  changed to set `fixed_seed = 1525241634` (a value the file's own
+  author had already recorded as historically interesting, "After
+  1900"); the current codebase's Verilator baseline reproducibly passes
+  with this seed. To get true bit-exact stimulus parity,
+  `tb_higgs_top_xsim.sv` reimplements glibc's `rand()`/`srand()` TYPE_3
+  algorithm (deg=31, sep=3 additive feedback generator) from scratch,
+  verified bit-for-bit against actual glibc output for this seed via a
+  standalone C cross-check, producing the identical `cs11in`
+  injection-timing schedule as Verilator's libc-backed `rand()`.
+- **Two more testbench/build fixes found while porting these 4 tests
+  (both broadly applicable, documented in-line in `xsim_common.mk`):**
+  - `eth_top.sv`'s own instantiation of `core_top` passes a bare scalar
+    `1'b0` to the unpacked-array parameter `MIB_CLK_SRSTS_EXTRA_CLOCKS`
+    (size 1) — a call-site instance of the same packed-vs-unpacked-array
+    literal issue already patched at `core_top.sv`/`core_reset.sv`'s own
+    parameter *declarations*, but XSIM only rejected it here (`VRFC
+    10-395`), not in `test_fft_lib_1`'s build, for the same design
+    elaborated slightly differently — likely `xelab` optimizer-order
+    nondeterminism rather than a real code difference. Fixed via one more
+    `sed` patch in `xsim_common.mk`'s `eth_top.sv` generation rule.
+  - `i_rx_ready_eth` (a `tb_higgs_top_xsim.sv` testbench signal wired to
+    `eth_top`'s `split_fb_ready` input, gating whether `eth_top`'s
+    `cs20_in_buffer` FIFO ever drains) was tied to constant `0` in every
+    existing XSIM testbench (including `test_fft_lib_1`'s, retroactively
+    fixed here too), but the reference Verilator harness
+    (`higgs_helper.hpp`'s `eth_rx` port, `control_ready=1`) always drives
+    it constant-`1`. Tying it to `0` silently backpressure-stalled
+    CS20's DMA output after only ~78 items once the FIFO filled — latent
+    but harmless in the low-volume tests (`test_fft_lib_1`/`test_eth_dma`/
+    `test_dma_slicer`) but fatal in `test_cs20_dma`'s high-volume
+    (14000+ item) scenario, which is how it was found. Fixed by tying
+    `i_rx_ready_eth = 1` in all testbenches.
+- **Physical ring-bus topology note.** While debugging `test_dma_fft`,
+  traced the ring bus's actual physical daisy-chain path (distinct from
+  the DMA/data path, `HS_*_IN/OUT`, which is unrelated): it is a genuine
+  9-tile loop, `eth→cs11→cs01→cs02→cs12→cs22→cs21→cs20→eth`, not a
+  simple linear chain. All 9 tiles are instantiated in this test
+  (`CSxx_NO_RISCV=1` for the 5 tiles without real firmware — ring-bus
+  relay present, RISC-V core absent).
+- **Result**: all 4 tests confirmed exact XSIM/Verilator ring-bus
+  match — `test_eth_dma`: `[0x1, 0x2, 0x3, 0x4]`; `test_dma_slicer`:
+  235-item sequence; `test_cs20_dma`: 0 items (both self-checks still
+  pass); `test_dma_fft`: `[0xdead, 0x8000, 0x8400, 0x8800]`, reproduced
+  across two independent clean `xsim_compare` runs (determinism check).
