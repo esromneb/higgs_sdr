@@ -543,3 +543,33 @@ test-specific notes.
   occur in both simulator frontends, predate this harness, and are outside
   its idle-instruction DMA boundary; they are recorded rather than suppressed
   or treated as covered by this test.
+
+## 2025-12-02: q_engine firmware-driven DMA parity
+
+- Added `fpgas/common/xilinx/sim/q_engine/`, a direct production-`q_engine`
+  harness using the Xilinx-selected scalar memory and valid/ready-correct
+  VMEM hierarchy. A compiled RV32I program runs on the real generated
+  `XbbRiscv`, configures DMA0 through the CSR bus, waits for its completion
+  interrupt, then configures DMA1 and its final-`last` behavior.
+- The external transaction path is
+  `t0 -> dma_in -> piston/VMEM -> dma_out -> demapper/slicer -> i0`.
+  The two independently written simulator drivers use seed `0x8c274a19`,
+  add deterministic input-valid gaps, independently backpressure `i0`, and
+  scoreboard all 64 payloads, ordering, final `last`, and timeout behavior.
+- `make clean compare` passes with Verilator 4.016 and XSIM 2025.2. Both
+  simulator-local scoreboards pass and their 454-cycle CSV traces match under
+  `compare_traces.py`; XSIM's initially uninitialized output-valid field is
+  the only don't-care. A deliberate defined-field corruption is rejected by
+  the comparator.
+- The test initially exposed an incomplete firmware setup: DMA1's `last` CSR
+  was not programmed, so the final output correctly lacked `last`. The test
+  firmware now writes `DMA_1_LAST_RTL=1`; no DUT behavior was changed.
+- XSIM uses build-only copies for the already documented NCO forward
+  declaration, duplicate FIFO declarations, and mixed-timescale
+  `muladdsub` directive. These compatibility transformations do not alter
+  committed production RTL. Verilator uses the existing configuration-specific
+  XPM substitute because Verilator 4.016 cannot parse the vendor model.
+- This gate covers the CPU/CSR-controlled external DMA loopback and composes
+  DMA-in, piston/VMEM, DMA-out, demapper, and slicer. It does not newly claim
+  ring-bus traffic, NCO operation, or instruction-driven vector/arithmetic
+  behavior; those remain covered by the existing focused and platform tests.

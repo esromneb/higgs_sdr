@@ -51,14 +51,19 @@ initial CS12 source closure.
    512-transaction XSIM/Verilator traces, its tagged XPM memory slice has a
    focused XSIM contract test, and the complete four-DMA/16-lane/16-bank
    parent passes vector write/read checks plus a 512-read DMA scoreboard with
-   bank conflicts, valid gaps, output stalls, and reset in flight. Continue
-   upward with `dma_out`, ring bus, and `q_engine`. The next composed boundary,
+   bank conflicts, valid gaps, output stalls, and reset in flight. The next composed boundary,
    `piston`, now also has a four-DMA external-interface harness: the XSIM and
    Verilator runs pass independent scoreboards and emit identical traces
    through piston's generated control/data elastic network. Its instruction
    input is intentionally idle in this focused test; instruction-driven
    arithmetic/vector coverage remains in the existing `vex_machine_top` and
-   platform regressions.
+   platform regressions. The direct `q_engine` boundary is now also complete:
+   real RV32I firmware configures DMA0 and DMA1 over the production CSR bus,
+   while deterministic stream gaps and output backpressure exercise and
+   scoreboard 64 transactions through DMA-in, piston/VMEM, DMA-out,
+   demapper, and slicer under both simulators. Ring-bus and NCO behavior
+   remain covered by their existing focused/platform evidence rather than
+   being claimed by this DMA loopback.
 5. **Assemble VexRiscv bottom-up.** Done: `XbbRiscv.v` (the generated
    VexRiscv wrapper) and its surrounding files were inspected and contain no
    vendor-specific memory or DSP macros — pure portable Verilog — so no
@@ -141,6 +146,10 @@ dedicated leaf harness (portable Verilog, no vendor macros). System-level
 integration is now proven at the `vex_machine_top` level: a real, compiled
 RISC-V program runs identically on both simulators through the entire
 assembled Q-engine/VexRiscv design (`fpgas/common/xilinx/sim/vex_machine_top/`).
+A direct production-`q_engine` gate additionally runs firmware that configures
+DMA-in and DMA-out through the real CSR bus and verifies a 64-word
+backpressured external-stream loop through piston/VMEM, demapper, and slicer
+with matching XSIM/Verilator cycle traces.
 A real pre-existing Verilator regression, `sim/verilator/test_fft_lib_1`,
 now also has full XSIM parity (exact 8-item ring-bus match), which
 surfaced and fixed a systemic missing-register-reset (X-propagation)

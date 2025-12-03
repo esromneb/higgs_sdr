@@ -36,4 +36,8 @@ memory slice has a focused XSIM contract test, and the full parent has a
 four-DMA/16-bank transaction scoreboard. The next boundary at
 `fpgas/common/xilinx/sim/piston/` drives the same four DMA streams through the
 real generated piston control/data edges and has matching XSIM/Verilator
-traces.
+traces. The direct parent boundary at
+`fpgas/common/xilinx/sim/q_engine/` runs real RV32I firmware to configure
+DMA-in and DMA-out over the production CSR bus, then verifies a deterministic
+64-word backpressured stream loop through piston/VMEM, demapper, and slicer
+with matching XSIM/Verilator traces.

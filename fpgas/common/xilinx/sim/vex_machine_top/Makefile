@@ -57,7 +57,6 @@ SOURCES := \
 	$(Q_ENGINE)/piston/hdl/iperm_dat_2_1.v \
 	$(Q_ENGINE)/piston/hdl/kap_ctrl_ctrl_1_5.v \
 	$(Q_ENGINE)/piston/hdl/kap_ctrl_dat_1_5.v \
-	$(Q_ENGINE)/piston/hdl/memory_slice.v \
 	$(Q_ENGINE)/piston/hdl/operm_ctrl_2_1.v \
 	$(Q_ENGINE)/piston/hdl/operm_dat_2_1.v \
 	$(Q_ENGINE)/piston/hdl/oumux_ctrl_2_5.v \
@@ -68,8 +67,12 @@ SOURCES := \
 	$(Q_ENGINE)/piston/hdl/vector_dat_17_2.v \
 	$(Q_ENGINE)/piston/hdl/vector_slice.v \
 	$(Q_ENGINE)/piston/hdl/vmem_ctrl_6_5.v \
-	$(Q_ENGINE)/piston/hdl/vmem_dat_6_5.v \
-	$(Q_ENGINE)/hdl/scalar_memory.v \
+	$(Q_ENGINE)/piston/hdl/vmem_dat_6_5_1_1.v \
+	$(Q_ENGINE)/piston/hdl/vmem_dat_arb_out_spinal_wrapper.v \
+	$(ROOT)/libs/spinal/hw/gen/VmemDatArbOut1_1.v \
+	$(ROOT)/libs/d-engine/rtl/elastic-buffer/eb15.sv \
+	$(ROOT)/fpgas/common/xilinx/memory_slice_1_1_xilinx.sv \
+	$(ROOT)/fpgas/common/xilinx/scalar_memory_xilinx.sv \
 	$(Q_ENGINE)/hdl/slicer.v \
 	$(Q_ENGINE)/hdl/dma/dma_in.v \
 	$(Q_ENGINE)/hdl/dma/dma_out.v \
@@ -196,8 +199,10 @@ verilator: gen
 	rm -rf $(BUILD)/verilator
 	mkdir -p $(BUILD)/verilator
 	verilator -cc --exe -Wno-fatal -Wno-PINMISSING -Wno-WIDTH -Wno-UNOPTFLAT \
-		+define+VERILATE \
+		+define+VERILATE +define+HIGGS_FPGA_XILINX \
+		+define+MEMORY_SLICE_1_1 +define+VMEM_DAT_ARB_OUT_1_1 \
 		--top-module vex_machine_top --Mdir $(BUILD)/verilator \
+		$(ROOT)/fpgas/common/xilinx/sim/memory_slice/xpm_memory_tdpram_verilator_model.sv \
 		$(SOURCES) $(CPP)
 	$(MAKE) -C $(BUILD)/verilator -f Vvex_machine_top.mk Vvex_machine_top
 	cp $(GEN)/scalar*.mif $(GEN)/vmem*.mif $(BUILD)/verilator/
@@ -210,8 +215,10 @@ xsim: gen
 	rm -rf $(BUILD)/xsim
 	mkdir -p $(BUILD)/xsim
 	cd $(BUILD)/xsim && xvlog -sv -work work -d HIGGS_FPGA_XILINX \
+		-d MEMORY_SLICE_1_1 -d VMEM_DAT_ARB_OUT_1_1 \
 		$(SOURCES) $(TB)
-	cd $(BUILD)/xsim && xelab -debug typical -s $(TOP) work.$(TOP)
+	cd $(BUILD)/xsim && xelab -L xpm -timescale 1ns/1ps -debug typical \
+		-s $(TOP) work.$(TOP)
 	cp $(GEN)/scalar*.mif $(GEN)/vmem*.mif $(BUILD)/xsim/
 	cd $(BUILD)/xsim && xsim $(TOP) -R -testplusarg TRACE=trace.csv
 

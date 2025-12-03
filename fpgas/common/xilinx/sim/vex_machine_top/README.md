@@ -68,7 +68,7 @@ Built with the real toolchain (`riscv32-unknown-elf-gcc -march=rv32i
 `MUL?=no` default) using the existing (previously unused end-to-end)
 `crt_standard.S` / `ld_standard` infrastructure in
 `libs/riscv-baseband/c/inc/`, then converted from Intel-hex to the 4
-byte-lane `.mif` files `scalar_memory.v`'s `$readmemh` expects via
+byte-lane `.mif` files `scalar_memory_xilinx.sv`'s `$readmemh` expects via
 `libs/riscv-baseband/scripts/hex2mif.py` (format confirmed to be plain
 `$readmemh`-compatible `@addr` syntax, not a proprietary MIF format).
 Correctness was independently verified by reconstructing 32-bit
@@ -78,8 +78,9 @@ including the `csrw` GPIO CSR writes.
 
 ## VMEM stub files
 
-`q_engine`'s 32 vector-memory (`memory_slice.v`) instances each
-unconditionally `$readmemh` a `vmemN.mif` file at time 0, regardless of
+`q_engine`'s 32 Xilinx-selected vector-memory
+(`memory_slice_1_1_xilinx.sv`) instances each request a `vmemN.mif`
+initialization file at time 0, regardless of
 whether the running program performs any vector op. `vex_machine_top.v`
 only exposes override parameters for `VMEM0..VMEM15`; `VMEM16..VMEM31`
 always resolve to `q_engine.v`'s own literal defaults
@@ -89,6 +90,12 @@ anyway), the `vmem_stubs` Makefile target simply generates all 32 default
 filenames as trivial one-byte-zero stub files
 (`fpgas/common/xilinx/sim/vex_machine_top/build/gen/vmemN.mif`) in each
 simulator's working directory before running.
+
+The harness now follows the production `HIGGS_FPGA_XILINX` selection:
+`piston` instantiates `vmem_dat_6_5_1_1`, the Spinal-generated
+valid/ready-correct return arbiter, and the tagged XPM memory slice. XSIM
+uses the vendor XPM library; Verilator 4.016 uses the same narrow XPM
+substitute as the focused memory and piston tests.
 
 ## Deliberate testbench-only deviation from production wiring
 
