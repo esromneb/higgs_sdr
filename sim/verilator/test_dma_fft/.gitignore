@@ -17,3 +17,18 @@ cs01_out.hex
 cs11_out.hex
 t1.txt
 
+
+# XSIM (xvlog/xelab/xsim) build products and logs -- all reproducible via
+# `make xsim_gen xsim_compile xsim_elab xsim_run`, never committed.
+/xsim_gen/
+/xsim.dir/
+*.wdb
+*.jou
+*.pb
+*.backup.jou
+*.backup.log
+xsim.log
+xelab.log
+xvlog.log
+xsim_run.log
+verilator_run.log

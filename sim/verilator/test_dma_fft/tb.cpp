@@ -41,7 +41,12 @@ int main(int argc, char** argv, char** env) {
 
   unsigned int fixed_seed = 0; // Set to non zero to use
 
-  // fixed_seed = 1525241634; // After 1900
+  // Fixed for XSIM/Verilator cross-simulator parity: the XSIM port
+  // (tb_higgs_top_xsim.sv) reimplements glibc's rand()/srand() TYPE_3
+  // algorithm exactly (verified bit-for-bit against libc for this seed)
+  // to reproduce the identical cs11in injection-timing schedule in both
+  // simulators. See tb_higgs_top_xsim.sv's header comment.
+  fixed_seed = 1525241634; // After 1900
 
   if(fixed_seed != 0) {
     seed_start = fixed_seed;
