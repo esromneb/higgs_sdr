@@ -1,0 +1,50 @@
+module piston_test_top (
+    input wire clk,
+    input wire reset_n,
+    input wire [48:0] in0,
+    input wire [48:0] in1,
+    input wire [48:0] in2,
+    input wire [48:0] in3,
+    input wire [3:0] in_valid,
+    output wire [3:0] in_ready,
+    output wire [31:0] out0,
+    output wire [31:0] out1,
+    output wire [31:0] out2,
+    output wire [31:0] out3,
+    output wire [3:0] out_valid,
+    input wire [3:0] out_ready
+);
+    wire unused_instr_ready;
+
+    piston dut (
+        .clk(clk),
+        .reset_n(reset_n),
+        .t_instr_dat(64'b0),
+        .t_instr_req(1'b0),
+        .t_instr_ack(unused_instr_ready),
+        .t_idma_0_dat(in0),
+        .t_idma_0_req(in_valid[0]),
+        .t_idma_0_ack(in_ready[0]),
+        .t_idma_1_dat(in1),
+        .t_idma_1_req(in_valid[1]),
+        .t_idma_1_ack(in_ready[1]),
+        .t_idma_2_dat(in2),
+        .t_idma_2_req(in_valid[2]),
+        .t_idma_2_ack(in_ready[2]),
+        .t_idma_3_dat(in3),
+        .t_idma_3_req(in_valid[3]),
+        .t_idma_3_ack(in_ready[3]),
+        .i_odma_0_dat(out0),
+        .i_odma_0_req(out_valid[0]),
+        .i_odma_0_ack(out_ready[0]),
+        .i_odma_1_dat(out1),
+        .i_odma_1_req(out_valid[1]),
+        .i_odma_1_ack(out_ready[1]),
+        .i_odma_2_dat(out2),
+        .i_odma_2_req(out_valid[2]),
+        .i_odma_2_ack(out_ready[2]),
+        .i_odma_3_dat(out3),
+        .i_odma_3_req(out_valid[3]),
+        .i_odma_3_ack(out_ready[3])
+    );
+endmodule

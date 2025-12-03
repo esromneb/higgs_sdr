@@ -70,12 +70,21 @@ module xpm_memory_tdpram #(
     input wire rstb,
     input wire sleep,
     input wire wea,
-    input wire web
+    input wire web,
+    output wire sbiterra,
+    output wire dbiterra,
+    output wire sbiterrb,
+    output wire dbiterrb
 );
 
     localparam integer DEPTH = MEMORY_SIZE / WRITE_DATA_WIDTH_A;
 
     reg [WRITE_DATA_WIDTH_A-1:0] mem[0:DEPTH-1];
+
+    assign sbiterra = 1'b0;
+    assign dbiterra = 1'b0;
+    assign sbiterrb = 1'b0;
+    assign dbiterrb = 1'b0;
 
     always @(posedge clka) begin
         if (ena) begin

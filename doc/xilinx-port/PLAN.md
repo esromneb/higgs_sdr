@@ -52,7 +52,13 @@ initial CS12 source closure.
    focused XSIM contract test, and the complete four-DMA/16-lane/16-bank
    parent passes vector write/read checks plus a 512-read DMA scoreboard with
    bank conflicts, valid gaps, output stalls, and reset in flight. Continue
-   upward with `dma_out`, ring bus, and `q_engine`.
+   upward with `dma_out`, ring bus, and `q_engine`. The next composed boundary,
+   `piston`, now also has a four-DMA external-interface harness: the XSIM and
+   Verilator runs pass independent scoreboards and emit identical traces
+   through piston's generated control/data elastic network. Its instruction
+   input is intentionally idle in this focused test; instruction-driven
+   arithmetic/vector coverage remains in the existing `vex_machine_top` and
+   platform regressions.
 5. **Assemble VexRiscv bottom-up.** Done: `XbbRiscv.v` (the generated
    VexRiscv wrapper) and its surrounding files were inspected and contain no
    vendor-specific memory or DSP macros — pure portable Verilog — so no
@@ -128,7 +134,9 @@ used via `fwft_sc_fifo`/`pmi_fifo_sc_fwft_v1_0`), each with
 directed-plus-fuzz simulator evidence. Parent-level gates are complete for `fwft_sc_fifo` and the
 Xilinx-selected `vmem_dat_6_5_1_1`; the latter includes focused memory-slice
 testing, cross-simulator return-arbiter parity, a complete parent scoreboard,
-and a fresh routed CS12 checkpoint. `XbbRiscv` (generated VexRiscv) needed no
+and a fresh routed CS12 checkpoint. The external piston DMA boundary is also
+covered with cross-simulator scoreboard and trace parity through the generated
+piston control/data network. `XbbRiscv` (generated VexRiscv) needed no
 dedicated leaf harness (portable Verilog, no vendor macros). System-level
 integration is now proven at the `vex_machine_top` level: a real, compiled
 RISC-V program runs identically on both simulators through the entire

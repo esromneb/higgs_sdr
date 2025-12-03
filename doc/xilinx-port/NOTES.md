@@ -512,3 +512,34 @@ test-specific notes.
   `LD_PRELOAD=/lib/x86_64-linux-gnu/libudev.so.1` to the `vivado` invocation
   avoided the allocator crash and produced all routed reports/checkpoints.
   Do not export this workaround globally.
+
+## 2025-12-02: piston external-DMA parent parity
+
+- Added `fpgas/common/xilinx/sim/piston/`, which instantiates the production
+  `piston` with `HIGGS_FPGA_XILINX`, `MEMORY_SLICE_1_1`, and
+  `VMEM_DAT_ARB_OUT_1_1`. Unlike the direct VMEM harness, requests and
+  responses traverse piston's generated control/data elastic edges before
+  reaching the Xilinx-selected VMEM hierarchy.
+- The deterministic test concurrently initializes memory through all four
+  DMA inputs, creates bank conflicts and input-valid gaps, queues reads before
+  reset, verifies reset discards the queued responses, and checks 512 ordered
+  reads while independently backpressuring all four DMA outputs.
+- `make clean compare` passes with Verilator 4.016 and XSIM 2025.2. Both
+  implementations pass their transaction scoreboards and emit identical
+  414-cycle CSV traces. A deliberately corrupted trace is rejected by
+  `compare_traces.py`.
+- XSIM uses the vendor `xpm_memory_tdpram`; Verilator uses the existing
+  configuration-specific model from the `memory_slice` harness. The model was
+  extended only with the four disabled ECC status outputs required by
+  `memory_slice_1_1_xilinx.sv`; the original `memory_slice` differential
+  regression still passes.
+- This is a focused external-DMA piston gate. `t_instr_req` remains low, so
+  instruction-driven arithmetic, vector scheduling, and permutation behavior
+  continue to rely on the existing `vex_machine_top` and platform regression
+  evidence rather than being claimed by this harness.
+- Compilation reports existing width warnings in the instruction/vector path,
+  including 68-bit generated permutation edges connected to 64-bit
+  `perm_full_*` ports and several legacy vector-slice expression widths. They
+  occur in both simulator frontends, predate this harness, and are outside
+  its idle-instruction DMA boundary; they are recorded rather than suppressed
+  or treated as covered by this test.

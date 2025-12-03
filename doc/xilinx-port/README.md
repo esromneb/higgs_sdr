@@ -33,4 +33,7 @@ routing, test, or hardware milestone.  Parent-level verification includes
 `vmem_dat_6_5_1_1`, its generated SpinalHDL return arbiter, and the tagged
 Xilinx memory slice.  The return arbiter has XSIM/Verilator trace parity, the
 memory slice has a focused XSIM contract test, and the full parent has a
-four-DMA/16-bank transaction scoreboard.
+four-DMA/16-bank transaction scoreboard. The next boundary at
+`fpgas/common/xilinx/sim/piston/` drives the same four DMA streams through the
+real generated piston control/data edges and has matching XSIM/Verilator
+traces.
