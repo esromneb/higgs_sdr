@@ -123,6 +123,12 @@ initial CS12 source closure.
     XSIM independently check the 32,768-sample count, exact 4,096-sample
     periodicity, phase anchors, and a fixed FNV-1a digest, then compare every
     emitted 32-bit sample exactly.
+11. **Expand Jenkins platform parity.** Done for three additional tests from
+    `sim/verilator/Makefile`'s active `TEST_LIST`: `test_vmem_0`,
+    `test_hw_mul`, and `test_fill_lib`. They respectively prove the complete
+    ordered VMEM counter stream, hardware multiply/divide results and latency
+    limits, and firmware-driven 16-bank vector fill contents. Each now has an
+    independent XSIM self-check and exact Verilator/XSIM ring-bus comparison.
 
 ## Milestone rule
 

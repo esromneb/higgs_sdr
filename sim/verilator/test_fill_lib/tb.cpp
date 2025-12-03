@@ -127,7 +127,29 @@ int main(int argc, char** argv, char** env) {
   // file_dump_vec(t->outs[1].data, "cs10_out.hex");
   // file_dump_vec(t->outs[2].data, "cs20_out.hex");
 
-  // cout << "All Tests Passed" << endl;
+  bool pass = t->outs["ringbusout"]->data.size() == 2 &&
+              t->outs["ringbusout"]->data[0] == 0xdeadbeef &&
+              t->outs["ringbusout"]->data[1] == 0;
+
+  for (unsigned int address = 0; address < 8 * NSLICES; address++) {
+    if (vmem_T<cs20_node_t>(cs20_node, address) != 0xdead) {
+      cerr << "FAIL: fill value mismatch at VMEM address " << address << endl;
+      pass = false;
+      break;
+    }
+  }
+  for (unsigned int address = 8 * NSLICES;
+       address < 9 * NSLICES;
+       address++) {
+    if (vmem_T<cs20_node_t>(cs20_node, address) != 0xcafe) {
+      cerr << "FAIL: fill value mismatch at VMEM address " << address << endl;
+      pass = false;
+      break;
+    }
+  }
+
+  if (pass)
+    cout << "All Tests Passed" << endl;
 
 
   // Final model cleanup
@@ -141,5 +163,5 @@ int main(int argc, char** argv, char** env) {
   delete top; top = NULL;
   //print_vector(output_vector);
   // Fin
-  exit(0);
+  exit(pass ? 0 : 1);
 }

@@ -63,6 +63,8 @@ EXTRA_CPP_FILES=$(RISCV_BASEBAND_REPO)/c/inc/feedback_bus.c
 HIGGS_TEST_DIR=.
 include $(HIGGS_ROOT)/scripts/make_include/tb_common.mk
 
+include $(HIGGS_ROOT)/scripts/make_include/xsim_common.mk
+
 test: test_dependencies
 	cat cs20_vmem.out | head -9 > cs20_test_out.txt
 	diff expected.txt cs20_test_out.txt

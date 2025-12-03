@@ -17,3 +17,16 @@ cs20_vmem.out
 t1.txt
 cs30_test_out.txt
 cs20_test_out.txt
+
+/xsim_gen/
+/xsim.dir/
+*.wdb
+*.jou
+*.pb
+*.backup.jou
+*.backup.log
+xsim.log
+xelab.log
+xvlog.log
+xsim_run.log
+verilator_run.log

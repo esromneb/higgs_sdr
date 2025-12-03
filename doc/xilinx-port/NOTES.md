@@ -600,3 +600,27 @@ test-specific notes.
   masked the problem. `xsim_common.mk` now adds `if (rst)` only to the
   generated XSIM copy, retaining every post-reset FIFO assertion and leaving
   production RTL unchanged. A clean rerun contains no SVA errors.
+
+## 2025-12-02: three more active Jenkins regressions ported to XSIM
+
+The authoritative active list is `sim/verilator/Makefile`'s `TEST_LIST`,
+which the repository documents as the old Jenkins automated suite. Three
+previously unported, deterministic tests were selected as the next batch:
+
+- **`test_vmem_0`**: ETH firmware emits the compile-time VMEM counter through
+  DMA/ring bus. Both simulators require exactly 16 ordered words,
+  `0x000000f0` through `0x000000ff`, and the streams match exactly.
+- **`test_hw_mul`**: real CS11 firmware runs on the full nine-tile platform.
+  Both simulators require the exact ring-bus sequence
+  `[0xdead, 0x2d, 0x499, 0x0c, 0x0102c5a0]`; the reported divide and multiply
+  latencies remain 45 and 12 cycles, below the legacy limits of 60 and 40.
+- **`test_fill_lib`**: real CS20 firmware executes `vmem_fill_low`.
+  Verilator's formerly external file-diff check is now also enforced inside
+  its driver. XSIM checks the same memory contract directly: all 16 banks in
+  rows 0-7 contain `0xdead`, all 16 banks in row 8 contain `0xcafe`, and the
+  completion ring-bus stream is `[0xdeadbeef, 0]`.
+
+For all three, `PATH=/opt/amd/2025.2/Vivado/bin:$PATH make xsim_compare`
+passes with Verilator 4.016 and XSIM 2025.2. The shared comparator confirms
+the complete ring-bus streams match, both simulator-local self-checks report
+success, and no SVA errors are present. Production RTL is unchanged.
