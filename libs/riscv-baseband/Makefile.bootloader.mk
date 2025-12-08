@@ -3,6 +3,7 @@
 Q_ENGINE_REPO=../q-engine
 IP_LIBRARY_REPO=../ip-library
 RISCV_BASEBAND_REPO=.
+DATAPATH_REPO=../datapath
 include $(Q_ENGINE_REPO)/scripts/make_include/verilog_paths.mk
 
 # path should be relative to where this makefile is (repo root)

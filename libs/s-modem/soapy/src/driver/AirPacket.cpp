@@ -748,7 +748,7 @@ static std::tuple<unsigned, unsigned, uint32_t> _demodulateSlicedHeaderHelper(
     // for each 8, count matches
     unsigned count_set = 0;
     unsigned lookup_i = 0;
-    uint32_t word0;
+    uint32_t word0 = 0;
     for(unsigned j = 0; j < sliced_word_count; j++) {
 
         auto optional_result = transform.t(i+j);
@@ -784,7 +784,7 @@ static std::tuple<unsigned, unsigned, uint32_t> _demodulateSlicedHeaderHelperUnt
     // for each 8, count matches
     unsigned count_set = 0;
     unsigned lookup_i = 0;
-    uint32_t word0;
+    uint32_t word0 = 0;
     for(unsigned j = 0; j < sliced_word_count; j++) {
 
         // auto optional_result = transform.t(i+j);

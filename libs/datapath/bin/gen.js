@@ -49,6 +49,7 @@ const fineGrain = {
     //     ['06', 0.923828125]
     // ],
     'bs_dat.v': [[2, 1]],
+    'round_sat_dat.v': [[1, 1]],
 
     'funnel_dat.v':    [[2, 2], [2, 4]],
     'funnel_ctrl.v':   [[2, 2], [2, 4]],

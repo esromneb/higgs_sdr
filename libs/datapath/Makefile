@@ -16,16 +16,20 @@ verilate:
 	--trace \
 	-cc \
 	-O3 \
+	+define+VERILATE \
+	-LDFLAGS -lboost_program_options \
 	-Ihdl \
-	--top-module datapath \
+	--top-module top_tb \
 	--exe hdl/tb.cpp \
-	hdl/*.v
+	hdl/*.v \
+	hdl/*.sv \
+	rtl/*.v
 
 compile:
-	make -j -C obj_dir/ -f Vdatapath.mk Vdatapath
+	make -j -C obj_dir/ -f Vtop_tb.mk Vtop_tb
 
 run:
-	./obj_dir/Vdatapath
+	cd hdl && ../obj_dir/Vtop_tb
 
 show:
 	gtkwave ./datapath.vcd -S hdl/top-wave.tcl &

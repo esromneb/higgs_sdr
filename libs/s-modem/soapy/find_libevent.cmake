@@ -20,10 +20,11 @@ find_path(LIBEVENT_INCLUDE_DIRS evhttp.h event.h PATHS ${LibEvent_INCLUDE_PATHS}
 # "lib" prefix is needed on Windows in some cases
 # newer versions of libevent use three libraries
 find_library(LIBEVENT_LIBRARIES NAMES event event_core event_extra libevent PATHS ${LibEvent_LIBRARIES_PATHS})
+find_library(LIBEVENT_PTHREADS_LIBRARY NAMES event_pthreads PATHS ${LibEvent_LIBRARIES_PATHS})
 
-if (LIBEVENT_LIBRARIES AND LIBEVENT_INCLUDE_DIRS)
+if (LIBEVENT_LIBRARIES AND LIBEVENT_PTHREADS_LIBRARY AND LIBEVENT_INCLUDE_DIRS)
   set(Libevent_FOUND TRUE)
-  set(LIBEVENT_LIBRARIES ${LIBEVENT_LIBRARIES})
+  set(LIBEVENT_LIBRARIES ${LIBEVENT_LIBRARIES} ${LIBEVENT_PTHREADS_LIBRARY})
 else ()
   set(Libevent_FOUND FALSE)
 endif ()
@@ -41,5 +42,6 @@ endif ()
 
 mark_as_advanced(
     LIBEVENT_LIBRARIES
+    LIBEVENT_PTHREADS_LIBRARY
     LIBEVENT_INCLUDE_DIRS
   )

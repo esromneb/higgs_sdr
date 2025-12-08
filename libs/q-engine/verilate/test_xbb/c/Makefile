@@ -1,6 +1,7 @@
 Q_ENGINE_REPO=../../..
 IP_LIBRARY_REPO=../../../../ip-library
 RISCV_BASEBAND_REPO=../../../../riscv-baseband
+DATAPATH_REPO=../../../../datapath
 include $(Q_ENGINE_REPO)/scripts/make_include/verilog_paths.mk
 
 

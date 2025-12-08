@@ -187,5 +187,6 @@ genriscv:
 	cd VexRiscv  &&	sbt "run-main vexriscv.demo.XbbRiscvWithRam"
 	rm -f hdl/generated/VexRiscv.v
 	sed -i 's| \?/\* \?verilator public \?\*/ \?||g' hdl/generated/XbbRiscv.v
+	sed -i -E 's|^// Date .*|// Date      : generated|' hdl/generated/XbbRiscv.v
 	#sed -i 's|wire \[31:0\] writeBack_PC;|wire \[31:0\] writeBack_PC;\n  define CUSTOM_VERILATOR_PUBLIC_32(sig) function[31:0] get_`sig``; /verilator public/   begin   get_``sig`` = sig;   end endfunction  \n   ifdef VERILATE_DEF \n    CUSTOM_VERILATOR_PUBLIC_32(writeBack_PC)  \n `endif \n  |g'   hdl/generated/XbbRiscv.v
 	cat hdl/generated/XbbRiscv.v | sed 's/\(ram \[.*\);/\1 \/\* synthesis syn_ramstyle = "registers" \*\/;/' > hdl/generated/XbbRiscvNoEBR.v

@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <stddef.h>
+#include <string>
 #include <vector>
 #include <functional>
 #include "driver/HiggsTDMA.hpp"

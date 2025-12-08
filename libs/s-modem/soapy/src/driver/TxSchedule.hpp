@@ -9,8 +9,9 @@
 
 
 #include <atomic>
-#include <vector>
 #include <mutex>
+#include <string>
+#include <vector>
 
 class HiggsEvent;
 class EventDsp;

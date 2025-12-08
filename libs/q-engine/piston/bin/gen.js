@@ -85,6 +85,7 @@ const fineGrain = {
 }
 
 const allTemplates = Object.assign({},templates,datapathTemplates);
+const withoutTrailingWhitespace = content => content.replace(/[ \t]+$/gm, '');
 
 Object.keys(allTemplates).forEach(fileName => {
     const extName = path.extname(fileName);
@@ -94,7 +95,7 @@ Object.keys(allTemplates).forEach(fileName => {
         const outPath = path.resolve(process.cwd(), 'hdl', baseName + subUnit.map(e => '_' + e).join('') + extName);
         fs.outputFile(
             outPath,
-            body,
+            withoutTrailingWhitespace(body),
             'utf-8',
             function (err) { if (err) { throw err; } }
         );
@@ -113,11 +114,11 @@ g.nodes.map((n,ni) => {
 fs.outputFile('c/vmem_node.h',vmemH, () => {});
 
 fs.outputFile('hdl/piston.dot', fhyperDot(g), () => {
-    fs.outputFile('hdl/piston.v', fhyperV(g, allMacros),   () => {});
+    fs.outputFile('hdl/piston.v', withoutTrailingWhitespace(fhyperV(g, allMacros)), () => {});
 });
 
 const k15 = fhyper('k15_op');
 k15_op(k15)();
 fs.outputFile('hdl/k15_op.dot', fhyperDot(k15), () => {
-    fs.outputFile('hdl/k15_op.v', fhyperV(k15, allMacros),   () => {});
+    fs.outputFile('hdl/k15_op.v', withoutTrailingWhitespace(fhyperV(k15, allMacros)), () => {});
 });
