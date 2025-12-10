@@ -14,7 +14,8 @@ the results are stored back (SK1) and streamed out.
   channels) at 16 pixels per LK8/LK9 beat.
 * Ops: copy, Gaussian 3/5/7, box 3/5, sharpen, unsharp, Laplacian,
   Sobel (|Gx|+|Gy| in one pass), Sobel-X, Prewitt, Scharr, emboss,
-  erode/dilate, custom s8 kernels.
+  erode/dilate, custom s8 kernels, and a per-channel-coefficient demo
+  (CHAN_GAUSS).
 * Feature detection: thresholded edges, 3x3 non-maximum suppression (peaks),
   global min/max with location, 16x16 tile edge counts → ROI bounding box.
 * Borders: ZERO or REPLICATE, with same-size output.
@@ -22,7 +23,7 @@ the results are stored back (SK1) and streamed out.
 ## Layout (planned; updated as milestones land)
 | path | what |
 |------|------|
-| `libs/datapath/image/img_model.py` | fixed-point Python model |
+| `libs/datapath/image/img_model.py` | fixed-point Python model (done: `selftest`, `gen-unit`, `gen-stream`, `compare`) |
 | `libs/datapath/image/rtl/img_datapath.v` | datapath RTL |
 | `libs/riscv-baseband/c/inc/image_kernel.{h,c}` | C library |
 | `sim/verilator/test_image_1/` | platform test (Verilator + XSIM) |

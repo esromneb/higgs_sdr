@@ -18,9 +18,10 @@ Status legend: `[ ]` todo, `[~]` in progress, `[x]` done.
 3. `[x]` **Processing level / multipliers**: real u8×s8, dual accumulator
    (128 MACs → ~128 DSP48E2), 24-bit accumulators, per-lane mode, MIN/MAX
    comparators, post stage. See NOTES §4–5.
-4. `[ ]` **Fixed-point Python model**: `libs/datapath/image/img_model.py`
+4. `[x]` **Fixed-point Python model**: `libs/datapath/image/img_model.py`
    (bit-exact to NOTES §5), synthetic image generator, stream
-   encoder/decoder, self-tests.
+   encoder/decoder, self-tests, and RTL vector generator. See NOTES §8.
+   `python3 libs/datapath/image/img_model.py selftest` passes.
 5. `[ ]` **Datapath RTL + compile**: `libs/datapath/image/rtl/img_datapath.v`
    with a standalone Verilator unit test against the model. Integrate it into
    `piston.v` behind `HIGGS_IMG_DATAPATH`, with the make/tcl selection
@@ -36,8 +37,8 @@ Status legend: `[ ]` todo, `[~]` in progress, `[x]` done.
    Python model. Run on both Verilator and XSIM.
 
 ## Milestones / commits
-* M1: docs + tasks 1–3 (this commit).
-* M2: Python model + self-tests.
+* M1: docs + tasks 1–3. `[x]`
+* M2: Python model + self-tests. `[x]`
 * M3: RTL + unit test + piston integration + lint + Vivado results.
 * M4: C library.
 * M5: test_image_1 on Verilator and XSIM (plus a regression check of
