@@ -28,11 +28,12 @@ Status legend: `[ ]` todo, `[~]` in progress, `[x]` done.
    `HIGGS_DATAPATH=img`. Then Verilator lint, and a Vivado synth + route of
    CS12 with the image datapath. Done: the unit test is bit-exact at 0/30/70 %
    stall, and CS12 routes at 125 MHz (WNS +0.647 ns, 134 DSP). See NOTES §9.
-6. `[~]` **C library + instruction schedule**:
+6. `[x]` **C library + instruction schedule**:
    `libs/riscv-baseband/c/inc/image_kernel.{h,c}`:
    * config/coefficient rows, line rings with halo, skew vregs;
-   * the per-chunk LK8/LK9/SK1 schedule and fence;
-   * multi-stage streaming (for PEAKS) and CPU feature reductions.
+   * the per-chunk LK8/LK9/SK1 schedule and an LK13/SK13 token fence;
+   * multi-stage streaming (for PEAKS) and CPU feature reductions;
+   * the cs22 stream protocol (jobs, errors, END). See NOTES §6–7.
 7. `[ ]` **Platform test** `sim/verilator/test_image_1`: cs22 firmware and a
    TB that injects multiple jobs, captures `cs22out` and compares it with the
    Python model. Run on both Verilator and XSIM.
@@ -41,13 +42,14 @@ Status legend: `[ ]` todo, `[~]` in progress, `[x]` done.
 * M1: docs + tasks 1–3. `[x]`
 * M2: Python model + self-tests. `[x]`
 * M3: RTL + unit test + piston integration + lint + Vivado results. `[x]`
-* M4: C library.
+* M4: C library. `[x]`
 * M5: test_image_1 on Verilator and XSIM (plus a regression check of
   test_fft_lib_1 with the default datapath).
 
 ## Risks / open items
-* CPU↔vector ordering: there is no hardware fence, so the plan uses an SK15
-  token fence (NOTES §6). This needs validation in simulation.
+* ~~CPU↔vector ordering~~: there is no hardware fence. An SK15 token fence
+  hung (MVVK15 over-pushes when the vector unit idles, NOTES §1). The
+  library now uses an LK13/SK13 token fence (NOTES §6.3).
 * ~~Vivado may map 8x8 multipliers to LUTs~~: resolved, all 128 are in DSPs.
 * Full-platform Verilator builds take ~15 min each; iterate with the unit
   test first.

@@ -25,7 +25,7 @@ the results are stored back (SK1) and streamed out.
 |------|------|
 | `libs/datapath/image/img_model.py` | fixed-point Python model (done: `selftest`, `gen-unit`, `gen-stream`, `compare`) |
 | `libs/datapath/image/rtl/img_datapath.v` | datapath RTL (done; unit test in `libs/datapath/image/sim`, `make`) |
-| `libs/riscv-baseband/c/inc/image_kernel.{h,c}` | C library |
+| `libs/riscv-baseband/c/inc/image_kernel.{h,c}` | C library (done: `img_run_stages`, `img_stream_loop`) |
 | `sim/verilator/test_image_1/` | platform test (Verilator + XSIM) |
 
 ## Selecting the datapath (compile time)

@@ -50,6 +50,17 @@ the code or update this file in the same commit.
     `MVVK15_KNOP(Vsrc); MVXV_KNOP(Va,row); VNOP_SK15(Va)`
     (the pattern in `test_slice_0`). The `MVVK15_SK15` macro in
     `xbaseband.h` is malformed (`| |`), so the library does not use it.
+  * **MVVK15 over-pushes when the vector unit goes idle** (found in
+    test_image_1, §10). In `vector_slice.v`,
+    `i_k15_valid = (funct_reg==MV_V_K15) & ~k15_latched`. `funct_reg` keeps
+    the last opcode while no instruction is valid, and `k15_latched` clears
+    on every idle cycle (`t_instr_ready` is 1 then). So an `MVVK15` that is
+    not immediately followed by another vector instruction pushes the same
+    value again and again, until the k15 → inmux elastic buffers are full.
+    The next `SK15` then stores a stale copy. The image library therefore
+    never uses `MVVK15`; its fence uses `LK13`/`SK13` (§6.3).
+  * `LK13 → SK13` is a plain row copy: VMEM → oumux k13 → 4-deep FIFO
+    (edge 41) → inmux k13 → store.
   * vreg `ADD` is field-split: the 12-bit baddr and the 4-bit perm are added
     separately, with no carry from baddr into perm (`test_slice_0`,
     "add overflow test").
@@ -240,31 +251,106 @@ use 26-bit signed arithmetic.
 * Only k8+k9 pairs are consumed. A k9 without a matching k8 (or the other
   way round) waits.
 
-## 6. Instruction schedule (task 6, summary)
+## 6. Instruction schedule and C library (task 6)
 
-Line buffers are VMEM rings. For a kernel of size N (R=(N-1)/2):
-* N line slots, each `W/16 + 2` rows: `[pad][W/16 pixel rows][pad]`.
-  Pixel x of a line is DMA word `16·(slot_row+1) + x`.
-* For output chunk j (pixels 16j..16j+15) of output row y and tap (dy,dx),
-  `LK8` uses `vreg = uniform(slot_row(y+dy) + 1 + j) + SKEW[dx]` where
-  `SKEW[dx][b] = ((dx mod 16) << 12) + (dx≥0 ? (b<dx) : -(b≥16+dx))`.
-  The per-bank row offset handles the wrap into the neighbouring 16-word row;
-  the permutation rotates banks back into pixel order.
-* The `SKEW` rows (dx = −3..+3) live in a VMEM table. They are loaded into 7
-  vregs with `LK15/MVK15V`.
-* The coefficient table has one row per tap, walked with
-  `ADD_LK9(Vc,Vc,Vone)`.
-* Each chunk ends with `SK1` into the output line. Fence: `ADD_SK15` writes a
-  token into a fence row, and the CPU polls it before reading the line or
-  DMAing it out.
-* 3x3 cost: 9 × (MVXV + ADD + LK8 + LK9) + SK1 ≈ 37 vector instructions per
-  16 pixels.
+`libs/riscv-baseband/c/inc/image_kernel.{h,c}`. Like every file in that
+folder it is compiled into every firmware. `--gc-sections` drops it, and its
+VMEM buffers, when unused.
+
+### 6.1 VMEM layout (static `VMEM_SECTION` arrays, ~93 KB)
+| buffer | rows | use |
+|---|---|---|
+| `img_ring_mem` | 14 slots × (1024+32)/16 | line rings: stage s has n_s slots |
+| `img_zero_mem` | 1 slot | all-zero line for ZERO borders |
+| `img_out_mem` | 2 × 64 | final output lines, double-buffered for DMA out |
+| `img_cfg_mem` | 2 | k14 config row per stage (words 0, 1) |
+| `img_coef_mem` | 2 × 49 | one k9 row per tap per stage (same word in all 16 slices) |
+| `img_skew_mem` | 7 | SKEW rows, dx = −3..+3 |
+| `img_fence_mem` | 3 | fence row, token rows (all 1s, all 2s) |
+| `img_hin_mem`, `img_hout_mem` | 1 each | header in/out |
+| `img_trl_mem` | trailer | 14 words + 4096 tile counts |
+
+* A line slot is `W/16 + 2` rows: `[pad][W/16 pixel rows][pad]`. Image row
+  y of stage s lives in slot `y mod n_s`. Pixel x is DMA word
+  `16·(slot_row + 1) + x`.
+* Horizontal halo: after each input DMA (and after each intermediate stage
+  row) the CPU writes R words either side of the line (0 or the edge pixel),
+  then reads one back so the write has landed before any vector load.
+* Vertical border: out-of-image rows map to the clamped row (REPLICATE) or
+  to the zero line (ZERO).
+
+### 6.2 Vector registers
+V0 row address, V1..V7 SKEW for dx = −3..+3, V8 coefficient pointer,
+V9 = 1, V10 output pointer, V11 skewed address, V12/V13 fence and config
+addresses.
+SKEW rows are loaded once per `img_run_stages` with
+`MVXV(V0,row); LK15(V0); MVK15V(Vn,0)`.
+
+### 6.3 Per output row (stage s, row y)
+```
+if stage changed:  MVXV(V13,cfg_row); LK14(V13)       // after a fence: nothing in flight
+MVXV(V10, dst_row)
+for chunk j in 0..W/16-1:
+    MVXV(V8, coef_row)
+    for dx in -R..R:                 // column-major = coefficient order
+        for dy in -R..R:
+            MVXV(V0, pix_row(y+dy) + j)
+            ADD(V11, V0, SKEW[dx])   // dx == 0: LK8(V0) directly
+            LK8(V11)
+            ADD_LK9(V8, V8, V9)      // load coef row, then V8++
+    ADD_SK1(V10, V10, V9)            // store k1 row, then V10++
+fence()
+```
+* `SKEW[dx][b] = ((dx & 15) << 12) | (off & 0xFFF)`, where
+  `off = dx ≥ 0 ? (b < dx) : −(b ≥ 16+dx)`. The vreg ADD is field-split
+  (§1), so the permutation and the row offset are encoded separately. Bank b
+  reads row `base + off_b`, and the permutation rotates the banks back into
+  pixel order, so slice s sees pixel `16j + s + dx`.
+* Coefficient rows follow the same column-major tap order (t → `jx = t/n`,
+  `iy = t%n`). FIRST is on t = 0, LAST on t = n²−1, CENTER on (r, r). The
+  accumulation is order-independent, so the result equals the model's
+  row-major reference.
+* 3x3 cost: ~5 RISC-V instructions per tap, so ~50 per 16 pixels. 7x7 is
+  ~250.
+* **Fence:** there is no hardware CPU↔vector fence. `img_fence()`
+  alternates the token between 1 and 2 and copies the matching token row
+  onto the fence row with `MVXV(V12,fence_row+tok); LK13(V12);
+  MVXV(V13,fence_row); SK13(V13)`. It then polls `fence_mem[0]` until it
+  equals the token. Vector stores leave through one in-order store mux, so
+  once the token is visible every earlier SK1 row is in VMEM, and the
+  datapath is empty. The first version used `MVVK15`/`SK15` and hung on the
+  second row (§1, §10).
+
+### 6.4 Multi-stage (PEAKS) and pull scheduling
+`img_produce(s, y)` first makes sure stage s has the input rows up to
+`min(y+R, H−1)`. For stage 0 it DMAs input lines. For stage s > 0 it
+recursively produces rows of stage s−1 into stage s's ring. Then it runs
+the row. This keeps only n_s lines per stage and runs PEAKS (Sobel → 3x3
+NMS) in a single pass.
+
+### 6.5 API
+* `img_op_stages(op, fmt, thr, stages)`: the op table, mirroring
+  `img_model.op_stages`.
+* `img_run_stages(stages, n, W, H, border, line_in, line_out, ctx)`: the
+  generic engine. `line_in(y, dma_addr, W)` fills an input line (the stream
+  layer DMAs it; other users can copy from memory). `line_out(y, cpu_ptr,
+  dma_addr, W)` receives each final line.
+* `img_stream_job` / `img_stream_loop`: the cs22 stream protocol (§7).
+  Stats are computed per output line in the out callback, which also DMAs
+  the line out. Before a new output line buffer is written, the code waits
+  until DMA_1 has ≤ 1 transfer queued (`dma_out` pops a schedule entry only
+  after its last word has been read).
+* `img_last_stats()`, `img_last_cycles()`: the last job's features and
+  timer cycles.
 
 ## 7. Test I/O (grill Q7, Q8)
 
 * cs22 is the image FPGA. The testbench injects on `cs22in`, which requires
-  `CS32_NO_RISCV`, as in `test_inject_cs22`, and captures `cs22out`. Every
-  other FPGA is `*_NO_RISCV`.
+  `CS32_NO_RISCV`, as in `test_inject_cs22`, and captures `cs22out`.
+* cs21 must run firmware. cs22out's ready is cs21's `HS_EAST_OUT`, which only
+  goes high while cs21 has an input DMA scheduled, so cs21 runs a DMA sink
+  loop (`test_image_1/override/fpgas/cs/cs21`). The platform is cs32
+  (no RISC-V) → cs22 (image firmware) → cs21 (sink).
 * The datapath choice is sim-wide: every Q-engine in the build gets the image
   datapath (`HIGGS_DATAPATH=img`).
 * Input stream, per job:
@@ -281,8 +367,15 @@ Line buffers are VMEM rings. For a kernel of size N (R=(N-1)/2):
     min_v, min_x, min_y, nz_count, sum, roi_count, roi_x0, roi_y0, roi_x1,
     roi_y1`, then one edge count per 16x16 tile in raster order. With no ROI
     tiles the bounding box is `0xFFFF`×4.
-* Limits: W is a multiple of 16 and ≤ 1024 (the C library rejects others),
-  and H is unbounded. Test images: gray 64x24 and RGBX 32x16. The synthetic
+* Errors: a job with an unknown op (1), a bad W (2: 0, not a multiple of 16,
+  or > 1024), a zero H (2) or more than 4096 16x16 tiles (3) is echoed as
+  its 3 header words plus `0xEE770000|code`. Its W·H pixels are consumed and
+  dropped. A bad header magic gives code 4 and nothing is drained.
+  `IMG_OP_CUSTOM` is API-only (`img_run_stages`), so it is an error in a
+  stream.
+* The END job (`op = 0xFF`) is echoed as 3 words, and `img_stream_loop`
+  returns.
+* Test images: gray 64x24 and RGBX 32x16. The synthetic
   scene is deterministic and generated by Python: a rectangle, a disc, a
   diagonal line, a gradient and LCG noise.
 
