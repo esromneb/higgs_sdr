@@ -1,6 +1,15 @@
 set script_dir [file normalize [file dirname [info script]]]
 set source_root [file normalize "$script_dir/../../../../.."]
-set output_dir "$script_dir/out"
+# HIGGS_DATAPATH=img selects the image kernel datapath (doc/kernel/README.md)
+set higgs_datapath fft
+if {[info exists ::env(HIGGS_DATAPATH)]} {
+    set higgs_datapath $::env(HIGGS_DATAPATH)
+}
+if {$higgs_datapath eq "img"} {
+    set output_dir "$script_dir/out_img"
+} else {
+    set output_dir "$script_dir/out"
+}
 set part xczu7ev-ffvc1156-2-e
 
 create_project -force cs12_vivado $output_dir/cs12_vivado -part $part
@@ -44,15 +53,17 @@ add_files -norecurse $source_root/libs/q-engine/piston/hdl/vmem_dat_6_5_1_1.v
 add_files -norecurse $source_root/libs/q-engine/piston/hdl/vmem_dat_arb_out_spinal_wrapper.v
 add_files -norecurse $source_root/libs/spinal/hw/gen/VmemDatArbOut1_1.v
 
+set higgs_defines {HIGGS_FPGA_XILINX MEMORY_SLICE_1_1 VMEM_DAT_ARB_OUT_1_1}
+if {$higgs_datapath eq "img"} {
+    add_files -norecurse $source_root/libs/datapath/image/rtl/img_datapath.v
+    lappend higgs_defines HIGGS_IMG_DATAPATH
+}
+
 set_property include_dirs [list \
     "$source_root/fpgas/packages" \
     "$source_root/libs/ip-library/lattice_support/gbit_mac/packages"] \
     [current_fileset]
-set_property verilog_define {
-    HIGGS_FPGA_XILINX
-    MEMORY_SLICE_1_1
-    VMEM_DAT_ARB_OUT_1_1
-} [current_fileset]
+set_property verilog_define $higgs_defines [current_fileset]
 set_property top cs12_top [current_fileset]
 update_compile_order -fileset sources_1
 

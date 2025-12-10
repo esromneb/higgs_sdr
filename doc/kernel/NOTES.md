@@ -45,7 +45,14 @@ the code or update this file in the same commit.
     `ADD_LK9(V8,V8,V9)` loads row `V8` then increments `V8`.
   * `MVXV_KNOP(v,x)` broadcasts the low 16 bits of `x` to all slices.
   * `VNOP_LK15(v); MVK15V_KNOP(d,0)` loads a VMEM row into a vreg.
-  * `ADD_SK15(d,a,b)` stores `vreg b` (zero-extended) into row `vreg a`.
+  * `SK15` stores the vector unit's *k15 output*, which is only valid for
+    funct `MV_V_K15`. To store a vreg into a row:
+    `MVVK15_KNOP(Vsrc); MVXV_KNOP(Va,row); VNOP_SK15(Va)`
+    (the pattern in `test_slice_0`). The `MVVK15_SK15` macro in
+    `xbaseband.h` is malformed (`| |`), so the library does not use it.
+  * vreg `ADD` is field-split: the 12-bit baddr and the 4-bit perm are added
+    separately, with no carry from baddr into perm (`test_slice_0`,
+    "add overflow test").
 * The generator does **not** reproduce the committed `piston.v` any more
   (reqack drift: regenerating shrinks it by ~4k lines). The Xilinx port
   already hand-edits `piston.v` (the `vmem_dat_6_5_1_1` ifdef), so the image
@@ -228,7 +235,8 @@ use 26-bit signed arithmetic.
   is latched whenever a k14 token arrives (the op is always acked).
 * A k1 row is produced only on LAST. The module is a global-stall pipeline:
   every stage advances when the output register is empty or being accepted.
-  Latency from the LAST beat to the k1 row is 6 clocks.
+  Latency from the LAST beat to the k1 row is 5 clocks. The k14 config is
+  sampled with every beat and travels down the pipeline with it.
 * Only k8+k9 pairs are consumed. A k9 without a matching k8 (or the other
   way round) waits.
 
@@ -294,9 +302,13 @@ test Makefiles have no dependencies.
   each holding its kernels, config and tap list (row-major, with
   FIRST/LAST/CENTER flags). The C library mirrors this table.
 * `stats_trailer` / `run_job` / `build_streams`: the feature trailer and the
-  full input/expected cs22 stream for `default_jobs()`. There are 22 jobs:
-  every op on gray 64x24 plus 4 on RGBX 32x16, giving 29,765 input words and
-  30,225 expected words.
+  full input/expected cs22 stream for `default_jobs()`. There are 24 jobs:
+  every op on gray 64x24, 4 on RGBX 32x16 and 2 error jobs (an unknown op
+  and a width that is not a multiple of 16), giving 29,947 input words and
+  30,233 expected words.
+* `job_error(op, w, h)`: the stream-level validation the C library also
+  does. An error job echoes the header plus `0xEE770000|code` (1 = op,
+  2 = size, 3 = tiles > 4096) and its pixels are consumed and dropped.
 * Scene generator: a gradient, a rectangle, a disc, the diagonal `x = 2y`
   and ±8 LCG noise. Each channel has different shapes, so the RGBX ops
   exercise every lane.
@@ -311,3 +323,37 @@ test Makefiles have no dependencies.
     slices 1–15.
   * `gen-stream IN EXP`, `compare EXP GOT`: the stream files for
     test_image_1 and the job-by-job diff report.
+
+## 9. RTL, integration and synthesis (task 5)
+
+* `libs/datapath/image/rtl/img_datapath.v`: a single module with the
+  piston-style ports `t_k8/t_k9/t_k14` (req/ack) and `i_k1`. It is a 6-stage
+  global-stall pipeline (§5.4). Each lane has two `(* use_dsp = "yes" *)`
+  u8×s8 products into 24-bit accumulators A/B, plus a MIN/MAX register and a
+  centre-capture register.
+* Unit test `libs/datapath/image/sim` (`make`): Verilator `-Wall` lint, then
+  a C++ TB that replays `img_model.py gen-unit` vectors (240 random
+  sequences plus directed edge cases) with 0 %, 30 % and 70 % random
+  backpressure/bubbles. It is bit-exact against the model on every row.
+* Piston integration (`libs/q-engine/piston/hdl/piston.v`): under
+  `` `ifdef HIGGS_IMG_DATAPATH `` the FFT datapath instance is replaced by
+  `img_datapath`, which is wired to the same `dat38/39/40` inputs,
+  `dat42_nxt` output and `req/ack` handshakes. `` `else `` keeps the
+  original code, byte for byte.
+* Selection knob `HIGGS_DATAPATH=img`:
+  * `verilog_paths.mk` adds `img_datapath.v` to `Q_ENGINE_ALL_VERILOG`;
+  * `tb_common.mk` adds `+define+HIGGS_IMG_DATAPATH=1` (Verilator and XSIM);
+  * the CS12 Vivado scripts (`build.tcl`/`implement.tcl`) read the same
+    environment variable, add the file and define, and write to `out_img/`.
+* Vivado 2025.2, CS12 (xczu-class part), `sys_clk` 125 MHz:
+
+  | | FFT datapath (baseline) | image datapath |
+  |---|---|---|
+  | DSP | 38 | 134 (128 lane MACs + 6 elsewhere) |
+  | CLB LUT | ~28k | 39,615 |
+  | CLB FF | – | 31,128 |
+  | BRAM tiles | 72 | 72 |
+  | routed WNS | met | **+0.647 ns**, all constraints met |
+
+  The 128 u8×s8 multipliers all mapped to DSP48E2. The extra LUTs are the
+  64-lane MIN/MAX, combine and saturate logic plus the 512-bit pipeline.

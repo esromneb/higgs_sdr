@@ -19,3 +19,16 @@ After synthesis succeeds, implement the checkpoint with:
 LD_PRELOAD=/lib/x86_64-linux-gnu/libudev.so.1 \
     /opt/amd/2025.2/Vivado/bin/vivado -mode batch -source implement.tcl
 ```
+
+## Image kernel datapath
+
+Set `HIGGS_DATAPATH=img` to build with the image kernel datapath
+(`libs/datapath/image`, see `doc/kernel/README.md`) instead of the FFT
+datapath. Both scripts then use `out_img/` instead of `out/`:
+
+```sh
+HIGGS_DATAPATH=img LD_PRELOAD=/lib/x86_64-linux-gnu/libudev.so.1 \
+    /opt/amd/2025.2/Vivado/bin/vivado -mode batch -source build.tcl
+HIGGS_DATAPATH=img LD_PRELOAD=/lib/x86_64-linux-gnu/libudev.so.1 \
+    /opt/amd/2025.2/Vivado/bin/vivado -mode batch -source implement.tcl
+```

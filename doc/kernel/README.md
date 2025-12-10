@@ -24,12 +24,12 @@ the results are stored back (SK1) and streamed out.
 | path | what |
 |------|------|
 | `libs/datapath/image/img_model.py` | fixed-point Python model (done: `selftest`, `gen-unit`, `gen-stream`, `compare`) |
-| `libs/datapath/image/rtl/img_datapath.v` | datapath RTL |
+| `libs/datapath/image/rtl/img_datapath.v` | datapath RTL (done; unit test in `libs/datapath/image/sim`, `make`) |
 | `libs/riscv-baseband/c/inc/image_kernel.{h,c}` | C library |
 | `sim/verilator/test_image_1/` | platform test (Verilator + XSIM) |
 
 ## Selecting the datapath (compile time)
-Planned: set `HIGGS_DATAPATH=img` in a test Makefile (Verilator/XSIM) or
-in the environment for Vivado. This defines `HIGGS_IMG_DATAPATH`, which
+Set `HIGGS_DATAPATH=img` in a test Makefile (Verilator/XSIM) or in the
+environment for Vivado (`fpgas/cs/cs12/build/vivado/README.md`). This defines `HIGGS_IMG_DATAPATH`, which
 reconnects piston's k8/k9/k14/k1 ports to `img_datapath`. The default
 (unset) is the original FFT datapath, unchanged.

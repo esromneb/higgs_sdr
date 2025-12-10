@@ -38,7 +38,14 @@ BORDER_ZERO, BORDER_REPLICATE = 0, 1
 
 HDR_MAGIC = 0x1A6E0000
 TRL_MAGIC = 0x5A7A0000
+ERR_MAGIC = 0xEE770000
 OP_END = 0xFF
+
+# stream job errors (NOTES section 7): the job's W*H input words are drained
+# and the output is the 3 header words plus ERR_MAGIC | code.
+ERR_OP, ERR_SIZE, ERR_TILES = 1, 2, 3
+MAX_W = 1024
+MAX_TILES = 4096
 
 SLICES = 16
 LANES = 64
@@ -112,13 +119,12 @@ def lane_step(cfg, first, ca, cb, p, a, b, m):
     if cfg.op == OP_MAC:
         a = wrap_signed(p * ca + (0 if first else a), ACC_BITS)
         b = wrap_signed(p * cb + (0 if first else b), ACC_BITS)
-    elif cfg.op in (OP_MIN, OP_MAX):
+    else:  # MIN, or MAX (op 3 is an alias of MAX)
         is_min = cfg.op == OP_MIN
         cur = (255 if is_min else 0) if first else m
         if ca != 0:
             cur = min(cur, p) if is_min else max(cur, p)
         m = cur
-    # op 3 is reserved and behaves like MAC in the RTL; not modelled
     return a, b, m
 
 
@@ -404,8 +410,24 @@ def header_words(op, fmt, border, w, h, thr, roi_thr):
             (thr & 0xFF) | (roi_thr & 0xFF) << 8]
 
 
+def job_error(op, w, h):
+    """Return the error code for a stream header, or 0 if the job is valid.
+    CUSTOM (16) is only available through the C API, not in a stream."""
+    if op not in OP_NAMES:
+        return ERR_OP
+    if w == 0 or h == 0 or w % 16 or w > MAX_W:
+        return ERR_SIZE
+    if (w // 16) * ((h + 15) // 16) > MAX_TILES:
+        return ERR_TILES
+    return 0
+
+
 def run_job(img, op, fmt, border, thr=0, roi_thr=0):
-    """Return (output image, output stream words) for one job."""
+    """Return (output image, output stream words) for one job. An invalid job
+    returns (None, header + [ERR_MAGIC | code])."""
+    err = job_error(op, len(img[0]), len(img))
+    if err:
+        return None, header_words(op, fmt, border, len(img[0]), len(img), thr, roi_thr) + [ERR_MAGIC | err]
     cur = img
     for st in op_stages(op, fmt, thr):
         cur = run_stage(cur, st, border)
@@ -469,6 +491,8 @@ def default_jobs():
     return [
         (OP_COPY, g, Z, 0, 0),
         (OP_GAUSS3, g, R, 0, 0),
+        (0x40, (32, 3, FMT_GRAY), R, 0, 0),         # error: unknown op
+        (OP_GAUSS3, (40, 2, FMT_GRAY), Z, 0, 0),    # error: W not a multiple of 16
         (OP_GAUSS5, g, Z, 0, 0),
         (OP_GAUSS7, g, R, 0, 0),
         (OP_BOX3, g, R, 0, 0),
@@ -533,6 +557,7 @@ def gen_unit_vectors(path, seed=1, n_seq=60):
         Cfg(op=OP_MAC, comb=COMB_MAXABS, shift=15, rnd=True, lane_mask=0xF),
         Cfg(op=OP_MAC, comb=COMB_L1, shift=15, rnd=True, offset=32767, lane_mask=0xF),
         Cfg(op=OP_MAC, comb=COMB_A, shift=1, rnd=True, offset=-32768, lane_mask=0xF),
+        Cfg(op=3, comb=COMB_L1, peak_en=True, thr=9, lane_mask=0xF),  # op 3 == MAX
     ]
     lines = []
     for i in range(n_seq):
@@ -560,6 +585,20 @@ def gen_unit_vectors(path, seed=1, n_seq=60):
             res = dp.beat(k8, k9)
             lines.append("B " + " ".join("%08x" % v for v in k8 + k9))
             if res is not None:
+                lines.append("E " + " ".join("%08x" % v for v in res))
+    # directed threshold / peak boundary cases: pixels at thr-1, thr, thr+1
+    for thr in (0, 1, 77, 254, 255):
+        for cfg, ca in ((Cfg(op=OP_MAC, thr_en=True, thr=thr, lane_mask=0xF), 1),
+                        (Cfg(op=OP_MAX, peak_en=True, thr=thr, lane_mask=0xF), 1),
+                        (Cfg(op=OP_MIN, thr_en=True, thr=thr, lane_mask=0xF), 1)):
+            dp.config(cfg.row())
+            lines.append("C %08x %08x" % tuple(cfg.words()))
+            for _ in range(3):
+                k8 = [sum((min(255, max(0, thr + (rng.next() % 3) - 1)) << (8 * byte))
+                          for byte in range(4)) for _ in range(16)]
+                k9 = [coef_word(ca, 0, F_FIRST | F_LAST | F_CENTER)] * 16
+                res = dp.beat(k8, k9)
+                lines.append("B " + " ".join("%08x" % v for v in k8 + k9))
                 lines.append("E " + " ".join("%08x" % v for v in res))
     with open(path, "w") as f:
         f.write("\n".join(lines) + "\n")
@@ -599,10 +638,14 @@ def compare_streams(exp, got, out=sys.stdout):
             break
         fmt = (exp[i] >> 8) & 1
         wd, ht = exp[i + 1] & 0xFFFF, exp[i + 1] >> 16
-        n = 3 + wd * ht
-        n_all = n + 1 + (exp[i + n] & 0xFFFF)
+        if job_error(op, wd, ht):
+            n = 3
+            n_all = 4
+        else:
+            n = 3 + wd * ht
+            n_all = n + 1 + (exp[i + n] & 0xFFFF)
         e, g = exp[i:i + n_all], got[i:i + n_all]
-        name = "%-10s %s %dx%d" % (OP_NAMES.get(op, str(op)), "rgbx" if fmt else "gray", wd, ht)
+        name = "%-10s %s %dx%d" % (OP_NAMES.get(op, "op%d" % op), "rgbx" if fmt else "gray", wd, ht)
         if e == g:
             out.write("job %2d %s: PASS\n" % (job, name))
         else:
@@ -698,7 +741,12 @@ def selftest():
     check(t[9:14] == [1, 32, 16, 39, 19], "roi clip %r" % t[9:14])
     check(stats_trailer([[0] * 16], FMT_GRAY, 0)[9:14] == [0, 0xFFFF] * 1 + [0xFFFF] * 3, "no roi")
 
-    inp, exp = build_streams(default_jobs()[:2])
+    for op, w, h, code in ((0x40, 16, 1, ERR_OP), (OP_CUSTOM, 16, 1, ERR_OP),
+                           (OP_COPY, 40, 1, ERR_SIZE), (OP_COPY, 1040, 1, ERR_SIZE),
+                           (OP_COPY, 1024, 1025, ERR_TILES)):
+        check(job_error(op, w, h) == code, "job_error %d %dx%d" % (op, w, h))
+    check(run_job([[1] * 40], OP_COPY, FMT_GRAY, 0)[1][3:] == [ERR_MAGIC | ERR_SIZE], "error job output")
+    inp, exp = build_streams(default_jobs()[:4])
     check(compare_streams(exp, list(exp), io.StringIO()), "compare identity")
     bad = list(exp)
     bad[10] ^= 1

@@ -22,12 +22,13 @@ Status legend: `[ ]` todo, `[~]` in progress, `[x]` done.
    (bit-exact to NOTES §5), synthetic image generator, stream
    encoder/decoder, self-tests, and RTL vector generator. See NOTES §8.
    `python3 libs/datapath/image/img_model.py selftest` passes.
-5. `[ ]` **Datapath RTL + compile**: `libs/datapath/image/rtl/img_datapath.v`
+5. `[x]` **Datapath RTL + compile**: `libs/datapath/image/rtl/img_datapath.v`
    with a standalone Verilator unit test against the model. Integrate it into
    `piston.v` behind `HIGGS_IMG_DATAPATH`, with the make/tcl selection
    `HIGGS_DATAPATH=img`. Then Verilator lint, and a Vivado synth + route of
-   CS12 with the image datapath.
-6. `[ ]` **C library + instruction schedule**:
+   CS12 with the image datapath. Done: the unit test is bit-exact at 0/30/70 %
+   stall, and CS12 routes at 125 MHz (WNS +0.647 ns, 134 DSP). See NOTES §9.
+6. `[~]` **C library + instruction schedule**:
    `libs/riscv-baseband/c/inc/image_kernel.{h,c}`:
    * config/coefficient rows, line rings with halo, skew vregs;
    * the per-chunk LK8/LK9/SK1 schedule and fence;
@@ -39,7 +40,7 @@ Status legend: `[ ]` todo, `[~]` in progress, `[x]` done.
 ## Milestones / commits
 * M1: docs + tasks 1–3. `[x]`
 * M2: Python model + self-tests. `[x]`
-* M3: RTL + unit test + piston integration + lint + Vivado results.
+* M3: RTL + unit test + piston integration + lint + Vivado results. `[x]`
 * M4: C library.
 * M5: test_image_1 on Verilator and XSIM (plus a regression check of
   test_fft_lib_1 with the default datapath).
@@ -47,7 +48,6 @@ Status legend: `[ ]` todo, `[~]` in progress, `[x]` done.
 ## Risks / open items
 * CPU↔vector ordering: there is no hardware fence, so the plan uses an SK15
   token fence (NOTES §6). This needs validation in simulation.
-* Vivado may map 8x8 multipliers to LUTs. Force DSP with `use_dsp`, then
-  check utilization.
+* ~~Vivado may map 8x8 multipliers to LUTs~~: resolved, all 128 are in DSPs.
 * Full-platform Verilator builds take ~15 min each; iterate with the unit
   test first.

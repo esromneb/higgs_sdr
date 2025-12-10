@@ -828,6 +828,31 @@ funnel_dat_2_2 unode54 (
     .clk(clk),
     .reset_n(reset_n)
 );
+`ifdef HIGGS_IMG_DATAPATH
+// Image kernel datapath (libs/datapath/image, doc/kernel/NOTES.md). It
+// takes k8 (dat38), k9 (dat39) and k14 (dat40) directly and drives k1
+// (dat42_nxt). The FFT datapath below stays instantiated with its input
+// funnels held idle, and synthesis trims it.
+wire [511:0] img_unused_dat42;
+wire img_k8_req, img_k8_ack, img_k9_req, img_k9_ack;
+wire img_k14_req, img_k14_ack, img_k1_req, img_k1_ack;
+img_datapath u_img_datapath (
+    .clk(clk),
+    .reset_n(reset_n),
+    .t_k8_dat(dat38),
+    .t_k8_req(img_k8_req),
+    .t_k8_ack(img_k8_ack),
+    .t_k9_dat(dat39),
+    .t_k9_req(img_k9_req),
+    .t_k9_ack(img_k9_ack),
+    .t_k14_dat(dat40),
+    .t_k14_req(img_k14_req),
+    .t_k14_ack(img_k14_ack),
+    .i_k1_dat(dat42_nxt),
+    .i_k1_req(img_k1_req),
+    .i_k1_ack(img_k1_ack)
+);
+`endif
 // node:55 macro defunnel
 wire       [7:0] enable55;
 wire       [7:0] mode55;
@@ -835,7 +860,11 @@ defunnel_dat_3_1 unode55 (
     .t_0_dat(dat287),
     .t_1_dat(dat312),
     .t_cfg_dat(dat339),
+`ifdef HIGGS_IMG_DATAPATH
+    .i_0_dat(img_unused_dat42),
+`else
     .i_0_dat(dat42_nxt),
+`endif
     .enable(enable55),
     .mode(mode55),
     .clk(clk),
@@ -4337,6 +4366,16 @@ assign dat359 = dat359_r0;
 piston_ctrl uctrl (
     .clk(clk),
     .reset_n(reset_n),
+`ifdef HIGGS_IMG_DATAPATH
+    .img_k8_req(img_k8_req),
+    .img_k8_ack(img_k8_ack),
+    .img_k9_req(img_k9_req),
+    .img_k9_ack(img_k9_ack),
+    .img_k14_req(img_k14_req),
+    .img_k14_ack(img_k14_ack),
+    .img_k1_req(img_k1_req),
+    .img_k1_ack(img_k1_ack),
+`endif
     .t_instr_req(t_instr_req),
     .t_instr_ack(t_instr_ack),
     .t_idma_0_req(t_idma_0_req),
@@ -4885,6 +4924,16 @@ module piston_ctrl (
     // per node (target / initiator)
     input              clk,
     input              reset_n,
+`ifdef HIGGS_IMG_DATAPATH
+    output             img_k8_req,
+    input              img_k8_ack,
+    output             img_k9_req,
+    input              img_k9_ack,
+    output             img_k14_req,
+    input              img_k14_ack,
+    input              img_k1_req,
+    output             img_k1_ack,
+`endif
     input              t_instr_req,
     output             t_instr_ack,
     input              t_idma_0_req,
@@ -12466,9 +12515,23 @@ assign ack28_0 = ack29;
 assign req30 = req28_1;
 assign ack28_1 = ack30;
 // node:53 custom controller funnel
+`ifdef HIGGS_IMG_DATAPATH
+wire img_unused_ack38, img_unused_ack39, img_unused_req42;
+assign img_k8_req = req38_0;
+assign ack38_0    = img_k8_ack;
+assign img_k9_req = req39_0;
+assign ack39_0    = img_k9_ack;
+assign req42      = img_k1_req;
+assign img_k1_ack = ack42;
+`endif
 funnel_ctrl_2_2 unode53 (
+`ifdef HIGGS_IMG_DATAPATH
+    .t_0_req(1'b0),
+    .t_0_ack(img_unused_ack38),
+`else
     .t_0_req(req38_0),
     .t_0_ack(ack38_0),
+`endif
     .t_cfg_req(req337_0),
     .t_cfg_ack(ack337_0),
     .i_0_req(req43),
@@ -12482,8 +12545,13 @@ funnel_ctrl_2_2 unode53 (
 
 // node:54 custom controller funnel
 funnel_ctrl_2_2 unode54 (
+`ifdef HIGGS_IMG_DATAPATH
+    .t_0_req(1'b0),
+    .t_0_ack(img_unused_ack39),
+`else
     .t_0_req(req39_0),
     .t_0_ack(ack39_0),
+`endif
     .t_cfg_req(req338_0),
     .t_cfg_ack(ack338_0),
     .i_0_req(req44),
@@ -12503,8 +12571,13 @@ defunnel_ctrl_3_1 unode55 (
     .t_1_ack(ack312_0),
     .t_cfg_req(req339_0),
     .t_cfg_ack(ack339_0),
+`ifdef HIGGS_IMG_DATAPATH
+    .i_0_req(img_unused_req42),
+    .i_0_ack(1'b0),
+`else
     .i_0_req(req42),
     .i_0_ack(ack42),
+`endif
     .enable(enable55),
     .mode(mode55),
     .clk(clk),
@@ -12711,7 +12784,12 @@ assign ack332_g = ack332 | ~req332;
 assign ack337_g = ack337 | ~req337;
 assign ack338_g = ack338 | ~req338;
 assign ack339_g = ack339 | ~req339;
+`ifdef HIGGS_IMG_DATAPATH
+assign img_k14_req = req40_0;
+assign ack40_0 = img_k14_ack;
+`else
 assign ack40_0 = ack61_g & ack63_g & ack65_g & ack67_g & ack69_g & ack71_g & ack75_g & ack77_g & ack79_g & ack81_g & ack83_g & ack85_g & ack87_g & ack89_g & ack93_g & ack95_g & ack97_g & ack99_g & ack101_g & ack103_g & ack105_g & ack107_g & ack111_g & ack113_g & ack115_g & ack117_g & ack119_g & ack121_g & ack123_g & ack125_g & ack129_g & ack131_g & ack151_g & ack153_g & ack155_g & ack157_g & ack159_g & ack161_g & ack165_g & ack167_g & ack169_g & ack171_g & ack173_g & ack175_g & ack177_g & ack179_g & ack183_g & ack185_g & ack187_g & ack189_g & ack191_g & ack193_g & ack195_g & ack197_g & ack201_g & ack203_g & ack205_g & ack207_g & ack209_g & ack211_g & ack213_g & ack215_g & ack219_g & ack221_g & ack239_g & ack240_g & ack243_g & ack244_g & ack247_g & ack248_g & ack251_g & ack252_g & ack271_g & ack272_g & ack275_g & ack276_g & ack279_g & ack280_g & ack283_g & ack284_g & ack288_g & ack289_g & ack294_g & ack295_g & ack300_g & ack301_g & ack306_g & ack307_g & ack313_g & ack314_g & ack319_g & ack320_g & ack325_g & ack326_g & ack331_g & ack332_g & ack337_g & ack338_g & ack339_g;
+`endif
 always @(posedge clk or negedge reset_n) if (~reset_n) req61_reg <= 1'b0; else req61_reg <= ack61_g & ~ack40_0;
 always @(posedge clk or negedge reset_n) if (~reset_n) req63_reg <= 1'b0; else req63_reg <= ack63_g & ~ack40_0;
 always @(posedge clk or negedge reset_n) if (~reset_n) req65_reg <= 1'b0; else req65_reg <= ack65_g & ~ack40_0;

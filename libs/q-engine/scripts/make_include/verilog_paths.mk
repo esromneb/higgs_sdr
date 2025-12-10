@@ -79,6 +79,14 @@ $(IP_LIBRARY_REPO)/fwft_fifos/sc_fifo/hdl/generic_dpram.v \
 $(IP_LIBRARY_REPO)/fwft_fifos/sc_fifo/hdl/generic_fifo_sc_a.v \
 $(DATAPATH_REPO)/rtl/muladdsub.v 
 
+# Compile-time datapath selection (doc/kernel/README.md):
+#   HIGGS_DATAPATH=fft  (default) original 16I/16Q complex FFT datapath
+#   HIGGS_DATAPATH=img  image kernel datapath (libs/datapath/image); the build
+#                       also defines HIGGS_IMG_DATAPATH (see tb_common.mk)
+# Lazy so a test Makefile may set HIGGS_DATAPATH before or after the include.
+HIGGS_DATAPATH ?= fft
+Q_ENGINE_ALL_VERILOG += $(if $(filter img,$(HIGGS_DATAPATH)),$(DATAPATH_REPO)/image/rtl/img_datapath.v)
+
 
 # if we change how this project is verilated, this will change
 Q_ENGINE_VERILATOR_TOP=q_engine

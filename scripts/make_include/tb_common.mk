@@ -23,6 +23,10 @@ HIGGS_TEST_DIR?=.
 #   invoke_c_override_clean
 include $(HIGGS_ROOT)/scripts/make_include/makefile_sim_verialtor.mk
 
+# HIGGS_DATAPATH=img selects the image kernel datapath in every piston
+# (Verilator and XSIM); see libs/q-engine/scripts/make_include/verilog_paths.mk
+VERILATOR_TB_INCLUDE_DEFINES += $(if $(filter img,$(HIGGS_DATAPATH)),+define+HIGGS_IMG_DATAPATH=1)
+
 
 # path should be relative to where this makefile is (repo root)
 VER_CPP_INCLUDE_PATH=../inc

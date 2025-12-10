@@ -1,5 +1,14 @@
 set script_dir [file normalize [file dirname [info script]]]
-set output_dir "$script_dir/out"
+# HIGGS_DATAPATH=img selects the image kernel datapath (doc/kernel/README.md)
+set higgs_datapath fft
+if {[info exists ::env(HIGGS_DATAPATH)]} {
+    set higgs_datapath $::env(HIGGS_DATAPATH)
+}
+if {$higgs_datapath eq "img"} {
+    set output_dir "$script_dir/out_img"
+} else {
+    set output_dir "$script_dir/out"
+}
 
 open_checkpoint $output_dir/cs12_synth.dcp
 opt_design
