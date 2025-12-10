@@ -34,9 +34,10 @@ Status legend: `[ ]` todo, `[~]` in progress, `[x]` done.
    * the per-chunk LK8/LK9/SK1 schedule and an LK13/SK13 token fence;
    * multi-stage streaming (for PEAKS) and CPU feature reductions;
    * the cs22 stream protocol (jobs, errors, END). See NOTES §6–7.
-7. `[ ]` **Platform test** `sim/verilator/test_image_1`: cs22 firmware and a
-   TB that injects multiple jobs, captures `cs22out` and compares it with the
-   Python model. Run on both Verilator and XSIM.
+7. `[x]` **Platform test** `sim/verilator/test_image_1`: cs22 firmware and a
+   TB that injects 24 jobs, captures `cs22out` and compares it with the
+   Python model. Verilator and XSIM both pass bit-exact with identical
+   outputs. See NOTES §10 for results, cycles per job and issues found.
 
 ## Milestones / commits
 * M1: docs + tasks 1–3. `[x]`
@@ -44,7 +45,7 @@ Status legend: `[ ]` todo, `[~]` in progress, `[x]` done.
 * M3: RTL + unit test + piston integration + lint + Vivado results. `[x]`
 * M4: C library. `[x]`
 * M5: test_image_1 on Verilator and XSIM (plus a regression check of
-  test_fft_lib_1 with the default datapath).
+  test_fft_lib_1 with the default datapath). `[x]`
 
 ## Risks / open items
 * ~~CPU↔vector ordering~~: there is no hardware fence. An SK15 token fence

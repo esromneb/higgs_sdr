@@ -450,3 +450,66 @@ test Makefiles have no dependencies.
 
   The 128 u8×s8 multipliers all mapped to DSP48E2. The extra LUTs are the
   64-lane MIN/MAX, combine and saturate logic plus the 512-bit pipeline.
+
+## 10. Platform test results (task 7)
+
+`sim/verilator/test_image_1` (see its README) builds cs22 with
+`HIGGS_DATAPATH=img`, runs `img_init(); img_stream_loop();`, and injects the
+24-job stream from `img_model.py gen-stream` into `cs22in`.
+
+* **Verilator** (`make test`): all 24 jobs are bit-exact against the model.
+  That covers 18 gray ops at 64×24, two error jobs (bad op, W=40 not a
+  multiple of 16) and 4 RGBX jobs at 32×16. END arrives at about 1.95 M
+  cycles. A clean build plus the run takes about 4.5 min wall.
+* **XSIM** (`make xsim_run`, Vivado 2025.2): PASS. `xsim_got.hex` is
+  byte-identical to Verilator's `got.hex`. The run takes about 8 min wall.
+* **Regression:** `test_fft_lib_1` with the default FFT datapath still
+  passes ("All Tests Passed").
+
+### 10.1 Cycles per job
+
+`tb.cpp` records the 500-cycle tick at which each job header appears in
+`cs22out` and prints `JOBCYC` lines. The header goes out once the job
+starts, so each gap below covers one whole job: pixels in, kernel, lines
+out, trailer.
+
+| job | size | cycles | per pixel |
+|---|---|---|---|
+| COPY (1 tap) | 64×24 gray | 77.5 k | 50 |
+| GAUSS3, BOX3, SHARPEN, LAPLACE, SOBEL, … (3×3) | 64×24 | 91–93 k | ~60 |
+| GAUSS5, BOX5 (5×5) | 64×24 | 113 k | 74 |
+| GAUSS7 (7×7) | 64×24 | 142 k | 92 |
+| PEAKS (Sobel → NMS, 2 stages) | 64×24 | 120 k | 78 |
+| GAUSS3 / SOBEL / CHAN_GAUSS / EDGES | 32×16 RGBX | 46–47.5 k | ~90 |
+| error job (drain) | 32×3, 40×2 | < 500 | – |
+
+* **Fixed cost.** COPY sets the floor at about 50 cycles per pixel. Most of
+  that is the CPU: it reads each input word from the stream FIFO and packs
+  it into VMEM, then does per-line output DMA and stats (min/max/nz/sum/tile
+  counts are all computed on the CPU per output pixel).
+* **Kernel cost.** Each extra tap costs about 14–16 cycles per 16-pixel
+  chunk. Measured against COPY over 96 chunks: 3×3 adds ~150 per chunk,
+  5×5 ~370 and 7×7 ~670. The per-tap cost is the MVXV + ADD(skew) + LK8 +
+  ADD_LK9 issue sequence. The 64-lane datapath itself is never the
+  bottleneck.
+* **Speed-up options** (not done): move stats to the datapath (min/max are
+  already available as MIN/MAX ops); unroll the input packing loop; issue
+  the tap sequence from a precomputed schedule so the per-tap address math
+  leaves the inner loop.
+
+### 10.2 Issues found by the platform test
+
+1. **MVVK15 idle over-push** (hardware, `vector_slice.v`, §1). The first
+   fence design (MVVK15 + SK15) hung on output row 1 of job 0. Fixed in
+   the library with an LK13→SK13 token-copy fence (§6.3). The shared RTL
+   is unchanged.
+2. **First injected word lost on XSIM** (`vex_machine_top.v` input buffer).
+   The buffer writes on `temp_valid && temp_ready_delay`, and the delayed
+   ready leaves reset one cycle after `o_afull_n`, so a word offered right
+   after reset is acked but dropped. `tb_higgs_top_xsim.sv` waits
+   `INJECT_DELAY` = 100 cycles after reset before injecting. Verilator's
+   injector starts later and never hit this.
+3. **Debug method.** `./obj_dir/Vtb_higgs_top +stalltrace`: if no output
+   arrives for 500 k cycles, the TB prints the cs22 PC and the fence row and
+   writes a 20-cycle `stall.vcd`. Verilator inlines most piston signals, so
+   the VCD is the practical way to inspect the inmux/oumux req/ack state.
